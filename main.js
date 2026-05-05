@@ -21,6 +21,7 @@ const { exec } = require('child_process');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const session = require('express-session');
 
 // ================= CONFIG =================
 const TOKEN = process.env.TOKEN;
@@ -28,6 +29,12 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 let currentChannelId = process.env.CHANNEL_ID;
 const PANEL_PORT = process.env.PANEL_PORT || 3000;
+
+// ================= SECURITY CONFIG =================
+const PANEL_USERNAME = process.env.PANEL_USERNAME || 'admin';
+const PANEL_PASSWORD = process.env.PANEL_PASSWORD || 'changeme123';
+const API_KEY        = process.env.API_KEY || '';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-change-me';
 
 // ================= DATABASE SEDERHANA UNTUK CHAT =================
 const DB_FILE = path.join(__dirname, 'chats.json');
@@ -96,22 +103,137 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
+// ================= SESSION & SECURITY MIDDLEWARE =================
+app.use(session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        maxAge: 8 * 60 * 60 * 1000 // 8 jam
+    }
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Rate limiter sederhana untuk login endpoint
+const loginAttempts = new Map();
+function loginRateLimit(req, res, next) {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    const entry = loginAttempts.get(ip) || { count: 0, resetAt: now + 60000 };
+    if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 60000; }
+    entry.count++;
+    loginAttempts.set(ip, entry);
+    if (entry.count > 10) {
+        return res.status(429).send('Too many login attempts. Try again in a minute.');
+    }
+    next();
+}
+
+// Middleware: cek apakah sudah login
+function requireAuth(req, res, next) {
+    if (req.session && req.session.authenticated) return next();
+    // Untuk request AJAX/fetch, kirim 401
+    if (req.headers['x-requested-with'] === 'XMLHttpRequest' || req.headers.accept?.includes('application/json')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    res.redirect('/login');
+}
+
+// Middleware: API key auth untuk REST endpoints
+function requireApiKey(req, res, next) {
+    if (!API_KEY) return next(); // Jika API_KEY tidak di-set, skip
+    const key = req.headers['x-api-key'] || req.query.api_key;
+    if (key === API_KEY) return next();
+    res.status(401).json({ error: 'Invalid or missing API key' });
+}
+
+// ================= AUTH ROUTES =================
+// Login page
+app.get('/login', (req, res) => {
+    if (req.session?.authenticated) return res.redirect('/');
+    const error = req.query.error ? '<p style="color:#f87171;margin-bottom:12px;font-size:0.875rem;">Invalid username or password.</p>' : '';
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login — Bot Panel</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#1e1f22;color:#dbdee1;font-family:'gg sans','Noto Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+  .card{background:#2b2d31;border-radius:8px;padding:32px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+  .logo{text-align:center;margin-bottom:24px;}
+  .logo svg{width:48px;height:48px;fill:#5865f2;}
+  h1{font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:4px;}
+  p.sub{font-size:0.8rem;color:#949ba4;text-align:center;margin-bottom:24px;}
+  label{display:block;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#949ba4;margin-bottom:6px;}
+  input{width:100%;background:#1e1f22;border:none;border-radius:4px;padding:10px 12px;font-size:0.95rem;color:#dbdee1;outline:none;margin-bottom:16px;}
+  input:focus{outline:2px solid #5865f2;}
+  button{width:100%;background:#5865f2;color:white;border:none;border-radius:4px;padding:11px;font-size:0.95rem;font-weight:600;cursor:pointer;transition:background .15s;}
+  button:hover{background:#4752c4;}
+  .footer{text-align:center;margin-top:16px;font-size:0.75rem;color:#949ba4;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.033.055a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+  </div>
+  <h1>Bot Control Panel</h1>
+  <p class="sub">Sign in to continue</p>
+  ${error}
+  <form method="POST" action="/login">
+    <label>Username</label>
+    <input type="text" name="username" autocomplete="username" autofocus required>
+    <label>Password</label>
+    <input type="password" name="password" autocomplete="current-password" required>
+    <button type="submit">Sign In</button>
+  </form>
+  <div class="footer">Deltalitehub Panel</div>
+</div>
+</body>
+</html>`);
+});
+
+// Login POST
+app.post('/login', loginRateLimit, (req, res) => {
+    const { username, password } = req.body;
+    if (username === PANEL_USERNAME && password === PANEL_PASSWORD) {
+        req.session.authenticated = true;
+        req.session.loginTime = Date.now();
+        addLog('system', `Panel login from ${req.ip}`);
+        return res.redirect('/');
+    }
+    addLog('system', `Failed login attempt from ${req.ip}`);
+    res.redirect('/login?error=1');
+});
+
+// Logout
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+});
+
+// Protect static files (panel) — serve AFTER auth check
+app.use(requireAuth, express.static(path.join(__dirname, 'public')));
+
+
 
 // ================= DEBUG & API ENDPOINTS =================
-app.get('/api/dashboard', (req, res) => {
+app.get('/api/dashboard', requireAuth, requireApiKey, (req, res) => {
     const data = getDashboardData();
     if (!data) return res.status(503).json({ error: 'Bot belum ready' });
     res.json(data);
 });
 
-app.get('/api/logs', (_req, res) => {
+app.get('/api/logs', requireAuth, requireApiKey, (_req, res) => {
     res.json(activityLog);
 });
 
-app.use(express.json());
-
-app.get('/api/settings', (_req, res) => {
+app.get('/api/settings', requireAuth, requireApiKey, (_req, res) => {
     res.json(settings);
 });
 
@@ -222,6 +344,21 @@ function broadcastUpdate() {
     const data = getDashboardData();
     if (data) io.emit('dashboard_update', data);
 }
+
+// ================= SOCKET.IO AUTH =================
+io.use((socket, next) => {
+    const req = socket.request;
+    // Parse session dari cookie
+    session({
+        secret: SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        cookie: { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }
+    })(req, req.res || {}, () => {
+        if (req.session?.authenticated) return next();
+        next(new Error('Unauthorized'));
+    });
+});
 
 io.on('connection', (socket) => {
     // Kirim status awal — jika bot belum ready, kirim state loading
