@@ -419,6 +419,10 @@
                     <span>Activity Log</span>
                     <span id="log-badge" style="display:none; margin-left:auto; background:#6366f1; color:white; font-size:0.6rem; font-weight:700; padding:2px 6px; border-radius:99px;">NEW</span>
                 </div>
+                <div class="nav-item" id="nav-settings" onclick="switchTab('settings')">
+                    <i class="fa-solid fa-sliders nav-icon" style="width:16px; text-align:center;"></i>
+                    <span>Settings</span>
+                </div>
             </nav>
         </div>
 
@@ -710,6 +714,195 @@
                 </div>
             </div>
 
+            <!-- ===== SETTINGS TAB ===== -->
+            <div class="tab-panel" id="tab-settings">
+                <div style="max-width:720px; display:flex; flex-direction:column; gap:20px;">
+
+                    <!-- Bot Identity -->
+                    <div class="glass" style="padding:24px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(99,102,241,0.2));display:flex;align-items:center;justify-content:center;color:#a78bfa;">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Bot Identity</div>
+                                <div style="font-size:0.75rem;color:#64748b;">Change bot username and profile picture</div>
+                            </div>
+                        </div>
+
+                        <!-- Bot preview card -->
+                        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(0,0,0,0.2);border-radius:12px;border:1px solid rgba(255,255,255,0.06);margin-bottom:20px;">
+                            <div class="avatar-ring" style="flex-shrink:0;">
+                                <img id="settings-bot-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" style="width:56px;height:56px;">
+                            </div>
+                            <div>
+                                <div id="settings-bot-username" style="font-weight:700;font-size:1rem;color:#e2e8f0;">Loading...</div>
+                                <div id="settings-bot-tag" style="font-size:0.75rem;color:#64748b;margin-top:2px;"></div>
+                                <div id="settings-bot-id" style="font-size:0.65rem;color:#475569;margin-top:2px;font-family:monospace;"></div>
+                            </div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                            <!-- Username -->
+                            <div>
+                                <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">New Username</label>
+                                <div style="display:flex;gap:8px;">
+                                    <input type="text" id="settings-username-input" placeholder="Enter new username..." style="flex:1;min-width:0;">
+                                    <button class="btn btn-purple" style="padding:10px 14px;white-space:nowrap;" onclick="updateUsername()">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                </div>
+                                <div id="settings-username-status" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
+                            </div>
+                            <!-- Avatar URL -->
+                            <div>
+                                <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Avatar Image URL</label>
+                                <div style="display:flex;gap:8px;">
+                                    <input type="text" id="settings-avatar-input" placeholder="https://i.imgur.com/..." style="flex:1;min-width:0;">
+                                    <button class="btn btn-purple" style="padding:10px 14px;white-space:nowrap;" onclick="updateAvatar()">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                </div>
+                                <div id="settings-avatar-status" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bot Presence -->
+                    <div class="glass" style="padding:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(34,211,238,0.2),rgba(8,145,178,0.15));display:flex;align-items:center;justify-content:center;color:#22d3ee;">
+                                <i class="fa-solid fa-circle-dot"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Bot Presence</div>
+                                <div style="font-size:0.75rem;color:#64748b;">Set online status and activity</div>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                            <!-- Status -->
+                            <div>
+                                <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Online Status</label>
+                                <div style="position:relative;">
+                                    <select id="settings-status" style="width:100%;padding-right:36px;">
+                                        <option value="online">🟢 Online</option>
+                                        <option value="idle">🟡 Idle</option>
+                                        <option value="dnd">🔴 Do Not Disturb</option>
+                                        <option value="invisible">⚫ Invisible</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;"></i>
+                                </div>
+                            </div>
+                            <!-- Activity Type -->
+                            <div>
+                                <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Activity Type</label>
+                                <div style="position:relative;">
+                                    <select id="settings-activity-type" style="width:100%;padding-right:36px;">
+                                        <option value="PLAYING">🎮 Playing</option>
+                                        <option value="WATCHING">📺 Watching</option>
+                                        <option value="LISTENING">🎵 Listening to</option>
+                                        <option value="COMPETING">🏆 Competing in</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Activity Text <span style="font-weight:400;text-transform:none;">(leave empty to clear)</span></label>
+                            <input type="text" id="settings-activity-text" placeholder="e.g. with your server..." style="width:100%;">
+                        </div>
+                        <button class="btn btn-cyan" onclick="savePresence()" style="background:linear-gradient(135deg,#0891b2,#22d3ee);color:#0f1117;">
+                            <i class="fa-solid fa-floppy-disk"></i> Apply Presence
+                        </button>
+                        <span id="settings-presence-status" style="font-size:0.8rem;color:#64748b;margin-left:12px;"></span>
+                    </div>
+
+                    <!-- Voice Settings -->
+                    <div class="glass" style="padding:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(5,150,105,0.3),rgba(16,185,129,0.2));display:flex;align-items:center;justify-content:center;color:#34d399;">
+                                <i class="fa-solid fa-headphones"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Voice Settings</div>
+                                <div style="font-size:0.75rem;color:#64748b;">Configure default voice channel and behavior</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:14px;">
+                            <div>
+                                <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Default Voice Channel</label>
+                                <div style="position:relative;">
+                                    <select id="settings-default-channel" style="width:100%;padding-right:36px;">
+                                        <option value="">-- Select Channel --</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;"></i>
+                                </div>
+                                <div style="font-size:0.72rem;color:#475569;margin-top:5px;">Bot will join this channel on connect/reconnect</div>
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+                                <div>
+                                    <div style="font-size:0.875rem;font-weight:600;color:#e2e8f0;">Auto-join on Start</div>
+                                    <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Automatically join voice when bot starts</div>
+                                </div>
+                                <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+                                    <input type="checkbox" id="settings-auto-join" style="opacity:0;width:0;height:0;position:absolute;">
+                                    <span id="toggle-auto-join" onclick="toggleSetting('auto-join')" style="position:absolute;inset:0;border-radius:99px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);transition:all 0.2s;cursor:pointer;">
+                                        <span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#64748b;transition:all 0.2s;" id="toggle-auto-join-knob"></span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="margin-top:16px;">
+                            <button class="btn btn-green" onclick="saveVoiceSettings()">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Voice Settings
+                            </button>
+                            <span id="settings-voice-status" style="font-size:0.8rem;color:#64748b;margin-left:12px;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Panel Settings -->
+                    <div class="glass" style="padding:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,0.3),rgba(99,102,241,0.2));display:flex;align-items:center;justify-content:center;color:#60a5fa;">
+                                <i class="fa-solid fa-palette"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Panel Settings</div>
+                                <div style="font-size:0.75rem;color:#64748b;">Customize the control panel</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Panel Title</label>
+                            <input type="text" id="settings-panel-title" placeholder="Deltalitehub Bot Panel" style="width:100%;">
+                            <div style="font-size:0.72rem;color:#475569;margin-top:5px;">Shown in browser tab title</div>
+                        </div>
+                        <button class="btn btn-blue" onclick="savePanelSettings()">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Panel Settings
+                        </button>
+                        <span id="settings-panel-status" style="font-size:0.8rem;color:#64748b;margin-left:12px;"></span>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:16px;padding:24px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                            <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;color:#f87171;">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700;font-size:0.9rem;color:#fca5a5;">Danger Zone</div>
+                                <div style="font-size:0.75rem;color:#64748b;">Irreversible actions</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                            <button class="btn btn-red" onclick="clearChatHistory()">
+                                <i class="fa-solid fa-trash"></i> Clear All Chat History
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </div><!-- /content padding -->
     </main>
     <div id="move-modal">
@@ -746,7 +939,7 @@
         let currentTab = 'dashboard';
 
         // ===== TAB SWITCHING =====
-        const tabTitles = { dashboard: 'Dashboard', voice: 'Voice Control', dm: 'DM Chat', announce: 'Announce', logs: 'Activity Log' };
+        const tabTitles = { dashboard: 'Dashboard', voice: 'Voice Control', dm: 'DM Chat', announce: 'Announce', logs: 'Activity Log', settings: 'Settings' };
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -757,6 +950,9 @@
             if (tab === 'logs') {
                 document.getElementById('log-badge').style.display = 'none';
                 socket.emit('get_logs');
+            }
+            if (tab === 'settings') {
+                socket.emit('get_settings');
             }
         }
 
@@ -875,6 +1071,26 @@
                     sel.innerHTML = '<option value="">-- Select Channel --</option>' +
                         data.textChannels.map(c => '<option value="' + c.id + '">#' + escHtml(c.name) + '</option>').join('');
                 }
+            }
+
+            // Populate voice channels for settings default channel
+            if (data.voiceChannels) {
+                const sel = document.getElementById('settings-default-channel');
+                if (sel && sel.options.length <= 1) {
+                    sel.innerHTML = '<option value="">-- Select Channel --</option>' +
+                        data.voiceChannels.map(c => '<option value="' + c.id + '">🔊 ' + escHtml(c.name) + '</option>').join('');
+                    if (data.settings && data.settings.defaultChannelId) {
+                        sel.value = data.settings.defaultChannelId;
+                    }
+                }
+            }
+
+            // Update settings bot preview if on settings tab
+            if (data.botInfo) {
+                const avatarEl = document.getElementById('settings-bot-avatar');
+                const nameEl = document.getElementById('settings-bot-username');
+                if (avatarEl) avatarEl.src = data.botInfo.avatar;
+                if (nameEl) nameEl.textContent = data.botInfo.username;
             }
         }
 
@@ -1055,8 +1271,8 @@
         }
 
         // ===== ACTIVITY LOGS =====
-        const logColors = { system: '#6366f1', voice: '#22d3ee', moderation: '#f59e0b', message: '#34d399' };
-        const logIcons  = { system: 'fa-gear', voice: 'fa-volume-high', moderation: 'fa-shield-halved', message: 'fa-envelope' };
+        const logColors = { system: '#6366f1', voice: '#22d3ee', moderation: '#f59e0b', message: '#34d399', settings: '#a78bfa' };
+        const logIcons  = { system: 'fa-gear', voice: 'fa-volume-high', moderation: 'fa-shield-halved', message: 'fa-envelope', settings: 'fa-sliders' };
 
         socket.on('logs_history', (logs) => renderLogs(logs));
         socket.on('activity_log', (entry) => {
@@ -1171,6 +1387,111 @@
         document.getElementById('move-modal').addEventListener('click', function(e) {
             if (e.target === this) closeMoveModal();
         });
+
+        // ===== SETTINGS =====
+        socket.on('settings_data', ({ settings, botInfo }) => {
+            if (botInfo) {
+                document.getElementById('settings-bot-avatar').src = botInfo.avatar;
+                document.getElementById('settings-bot-username').textContent = botInfo.username;
+                document.getElementById('settings-bot-tag').textContent = botInfo.tag;
+                document.getElementById('settings-bot-id').textContent = 'ID: ' + botInfo.id;
+            }
+            if (settings) {
+                document.getElementById('settings-status').value = settings.statusType || 'online';
+                document.getElementById('settings-activity-type').value = settings.activityType || 'PLAYING';
+                document.getElementById('settings-activity-text').value = settings.activityText || '';
+                document.getElementById('settings-panel-title').value = settings.panelTitle || 'Deltalitehub Bot Panel';
+                document.getElementById('settings-auto-join').checked = settings.autoJoinOnStart !== false;
+                updateToggleUI('auto-join', settings.autoJoinOnStart !== false);
+                if (settings.defaultChannelId) {
+                    document.getElementById('settings-default-channel').value = settings.defaultChannelId;
+                }
+            }
+        });
+
+        socket.on('settings_saved', ({ success, settings }) => {
+            if (success && settings) {
+                if (settings.panelTitle) document.title = settings.panelTitle;
+            }
+        });
+
+        socket.on('settings_result', ({ key, success, message, error }) => {
+            const statusEl = document.getElementById('settings-' + key + '-status');
+            if (!statusEl) return;
+            if (success) {
+                setStatus(statusEl, '✓ ' + message, '#34d399');
+            } else {
+                setStatus(statusEl, '✗ ' + error, '#f87171');
+            }
+        });
+
+        function updateUsername() {
+            const username = document.getElementById('settings-username-input').value.trim();
+            if (!username) return;
+            socket.emit('update_bot_username', { username });
+            setStatus(document.getElementById('settings-username-status'), 'Updating...', '#64748b');
+        }
+
+        function updateAvatar() {
+            const imageUrl = document.getElementById('settings-avatar-input').value.trim();
+            if (!imageUrl) return;
+            socket.emit('update_bot_avatar', { imageUrl });
+            setStatus(document.getElementById('settings-avatar-status'), 'Updating...', '#64748b');
+        }
+
+        function savePresence() {
+            const statusType = document.getElementById('settings-status').value;
+            const activityType = document.getElementById('settings-activity-type').value;
+            const activityText = document.getElementById('settings-activity-text').value.trim();
+            socket.emit('save_settings', { statusType, activityType, activityText });
+            setStatus(document.getElementById('settings-presence-status'), 'Saving...', '#64748b');
+            setTimeout(() => setStatus(document.getElementById('settings-presence-status'), '✓ Saved', '#34d399'), 500);
+        }
+
+        function saveVoiceSettings() {
+            const defaultChannelId = document.getElementById('settings-default-channel').value;
+            const autoJoinOnStart = document.getElementById('settings-auto-join').checked;
+            socket.emit('save_settings', { defaultChannelId, autoJoinOnStart });
+            setStatus(document.getElementById('settings-voice-status'), 'Saving...', '#64748b');
+            setTimeout(() => setStatus(document.getElementById('settings-voice-status'), '✓ Saved', '#34d399'), 500);
+        }
+
+        function savePanelSettings() {
+            const panelTitle = document.getElementById('settings-panel-title').value.trim();
+            socket.emit('save_settings', { panelTitle });
+            setStatus(document.getElementById('settings-panel-status'), 'Saving...', '#64748b');
+            setTimeout(() => {
+                setStatus(document.getElementById('settings-panel-status'), '✓ Saved', '#34d399');
+                document.title = panelTitle || 'Deltalitehub Bot Panel';
+            }, 500);
+        }
+
+        function toggleSetting(key) {
+            const checkbox = document.getElementById('settings-' + key);
+            checkbox.checked = !checkbox.checked;
+            updateToggleUI(key, checkbox.checked);
+        }
+
+        function updateToggleUI(key, checked) {
+            const toggle = document.getElementById('toggle-' + key);
+            const knob = document.getElementById('toggle-' + key + '-knob');
+            if (checked) {
+                toggle.style.background = 'linear-gradient(135deg, #10b981, #34d399)';
+                toggle.style.borderColor = 'rgba(16,185,129,0.4)';
+                knob.style.left = '24px';
+                knob.style.background = 'white';
+            } else {
+                toggle.style.background = 'rgba(255,255,255,0.1)';
+                toggle.style.borderColor = 'rgba(255,255,255,0.15)';
+                knob.style.left = '3px';
+                knob.style.background = '#64748b';
+            }
+        }
+
+        function clearChatHistory() {
+            if (!confirm('Delete ALL chat history? This cannot be undone.')) return;
+            socket.emit('clear_chat_history');
+        }
 
         // Responsive menu toggle
         if (window.innerWidth <= 768) {

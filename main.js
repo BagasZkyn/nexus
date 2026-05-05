@@ -42,7 +42,47 @@ function saveChats(data) {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
-// ================= ACTIVITY LOG =================
+// ================= SETTINGS =================
+const SETTINGS_FILE = path.join(__dirname, 'settings.json');
+
+const defaultSettings = {
+    defaultChannelId: process.env.CHANNEL_ID,
+    autoJoinOnStart: true,
+    autoReconnect: false,
+    panelTitle: 'Deltalitehub Bot Panel',
+    statusType: 'online',       // online | idle | dnd | invisible
+    activityType: 'PLAYING',    // PLAYING | WATCHING | LISTENING | COMPETING
+    activityText: '',
+};
+
+function loadSettings() {
+    if (!fs.existsSync(SETTINGS_FILE)) return { ...defaultSettings };
+    try { return { ...defaultSettings, ...JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) }; }
+    catch (e) { return { ...defaultSettings }; }
+}
+
+function saveSettings(data) {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));
+}
+
+let settings = loadSettings();
+
+async function applyBotPresence() {
+    if (!client.user) return;
+    const activityTypeMap = { PLAYING: 0, STREAMING: 1, LISTENING: 2, WATCHING: 3, COMPETING: 5 };
+    const presenceData = { status: settings.statusType };
+    if (settings.activityText) {
+        presenceData.activities = [{
+            name: settings.activityText,
+            type: activityTypeMap[settings.activityType] ?? 0
+        }];
+    } else {
+        presenceData.activities = [];
+    }
+    client.user.setPresence(presenceData);
+}
+
+
 const activityLog = [];
 function addLog(type, message) {
     const entry = { type, message, time: Date.now() };
@@ -65,9 +105,16 @@ app.get('/api/dashboard', (req, res) => {
     res.json(data);
 });
 
-app.get('/api/logs', (req, res) => {
+app.get('/api/logs', (_req, res) => {
     res.json(activityLog);
 });
+
+app.use(express.json());
+
+app.get('/api/settings', (_req, res) => {
+    res.json(settings);
+});
+
 
 
 // Tambahkan Partials dan Intent untuk DM & Message Content
@@ -146,6 +193,16 @@ function getDashboardData() {
         stats: { ping: client.ws.ping, uptime: Math.floor(client.uptime / 60000), guilds: client.guilds.cache.size, users: client.users.cache.size },
         server: { name: guild.name, icon: guild.iconURL({ dynamic: true, size: 64 }) || 'https://cdn.discordapp.com/embed/avatars/0.png', memberCount: guild.memberCount },
         voice: { status: connection ? 'Connected' : 'Disconnected', channelName: voiceChannel ? voiceChannel.name : 'Unknown', channelId: currentChannelId },
+        botInfo: {
+            username: client.user.username,
+            tag: client.user.tag,
+            id: client.user.id,
+            avatar: client.user.displayAvatarURL({ dynamic: true, size: 128 }),
+            status: settings.statusType,
+            activityType: settings.activityType,
+            activityText: settings.activityText,
+        },
+        settings,
         voiceChannels, textChannels, members, allServerUsers
     };
 }
@@ -291,6 +348,83 @@ io.on('connection', (socket) => {
         socket.emit('logs_history', activityLog);
     });
 
+    // ================= SETTINGS =================
+    socket.on('get_settings', () => {
+        socket.emit('settings_data', { settings, botInfo: client.user ? {
+            username: client.user.username,
+            avatar: client.user.displayAvatarURL({ dynamic: true, size: 128 }),
+            id: client.user.id,
+            tag: client.user.tag,
+        } : null });
+    });
+
+    socket.on('save_settings', async (newSettings) => {
+        try {
+            const old = { ...settings };
+            settings = { ...settings, ...newSettings };
+
+            // Update default channel
+            if (newSettings.defaultChannelId) {
+                currentChannelId = newSettings.defaultChannelId;
+            }
+
+            saveSettings(settings);
+
+            // Apply presence changes immediately
+            if (newSettings.statusType !== undefined || newSettings.activityType !== undefined || newSettings.activityText !== undefined) {
+                await applyBotPresence();
+                addLog('settings', `Presence updated: ${settings.statusType} — ${settings.activityText || 'no activity'}`);
+            }
+
+            if (newSettings.defaultChannelId && newSettings.defaultChannelId !== old.defaultChannelId) {
+                const guild = client.guilds.cache.get(GUILD_ID);
+                const ch = guild?.channels.cache.get(newSettings.defaultChannelId);
+                addLog('settings', `Default channel changed to: ${ch ? ch.name : newSettings.defaultChannelId}`);
+            }
+
+            if (newSettings.panelTitle && newSettings.panelTitle !== old.panelTitle) {
+                addLog('settings', `Panel title changed to: ${newSettings.panelTitle}`);
+            }
+
+            io.emit('settings_saved', { success: true, settings });
+            broadcastUpdate();
+        } catch (e) {
+            console.error('Settings save error:', e);
+            socket.emit('settings_saved', { success: false, error: e.message });
+        }
+    });
+
+    socket.on('update_bot_username', async ({ username }) => {
+        if (!username || username.length < 2 || username.length > 32)
+            return socket.emit('settings_result', { key: 'username', success: false, error: 'Username must be 2–32 characters' });
+        try {
+            await client.user.setUsername(username);
+            addLog('settings', `Bot username changed to: ${username}`);
+            socket.emit('settings_result', { key: 'username', success: true, message: `Username updated to ${username}` });
+            broadcastUpdate();
+        } catch (e) {
+            socket.emit('settings_result', { key: 'username', success: false, error: e.message });
+        }
+    });
+
+    socket.on('update_bot_avatar', async ({ imageUrl }) => {
+        if (!imageUrl) return socket.emit('settings_result', { key: 'avatar', success: false, error: 'No image URL provided' });
+        try {
+            await client.user.setAvatar(imageUrl);
+            addLog('settings', `Bot avatar updated`);
+            socket.emit('settings_result', { key: 'avatar', success: true, message: 'Avatar updated successfully' });
+            setTimeout(broadcastUpdate, 2000); // wait for Discord to process
+        } catch (e) {
+            socket.emit('settings_result', { key: 'avatar', success: false, error: e.message });
+        }
+    });
+
+    socket.on('clear_chat_history', () => {
+        saveChats({});
+        addLog('settings', 'All chat history cleared');
+        socket.emit('settings_result', { key: 'clear-chat', success: true, message: 'Chat history cleared' });
+    });
+
     // ================= DM CHAT LOGIC =================
     socket.on('get_dm_history', ({ userId }) => {
         const chats = loadChats();
@@ -368,8 +502,8 @@ client.once('ready', async () => {
     }
     
     setInterval(broadcastUpdate, 10000);
-    // Kirim update pertama setelah bot ready ke semua socket yang sudah connect
     broadcastUpdate();
+    await applyBotPresence();
     console.log('✅ Bot ready, dashboard data dikirim ke semua client.');
     addLog('system', `Bot started as ${client.user.tag}`);
 });
