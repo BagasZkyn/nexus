@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deltalitehub Bot Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        navy: { 900: '#0f1117', 800: '#1a1d2e', 700: '#252840', 600: '#2e3155' },
-                        accent: { purple: '#7c3aed', indigo: '#6366f1', cyan: '#22d3ee' }
+                        navy: { 900: '#1e1f22', 800: '#2b2d31', 700: '#313338', 600: '#383a40' },
+                        accent: { purple: '#5865F2', indigo: '#5865F2', cyan: '#23a559' }
                     }
                 }
             }
@@ -22,100 +22,131 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --bg-deep: #0f1117;
-            --bg-card: #1a1d2e;
-            --bg-card2: #252840;
-            --border: rgba(255,255,255,0.08);
-            --purple: #7c3aed;
-            --indigo: #6366f1;
-            --cyan: #22d3ee;
-            --text: #e2e8f0;
-            --text-muted: #94a3b8;
+            --bg-deep: #1e1f22;
+            --bg-card: #2b2d31;
+            --bg-card2: #313338;
+            --border: rgba(255,255,255,0.06);
+            --purple: #5865F2;
+            --indigo: #5865F2;
+            --cyan: #23a559;
+            --text: #dbdee1;
+            --text-muted: #949ba4;
         }
         html, body { height: 100%; }
         body {
-            background: var(--bg-deep);
+            background: var(--bg-card2);
             color: var(--text);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             display: flex;
             overflow: hidden;
         }
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+        
+        /* Custom Select */
+        .custom-select-wrapper { position: relative; width: 100%; user-select: none; }
+        .custom-select-trigger {
+            background: #1e1f22; border: none; color: var(--text); border-radius: 4px; padding: 10px 12px;
+            font-size: 0.95rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+        .custom-select-wrapper.open .custom-select-trigger { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .custom-select-options {
+            position: absolute; top: 100%; left: 0; right: 0; background: #2b2d31; border: 1px solid #1e1f22;
+            border-top: none; border-radius: 0 0 4px 4px; z-index: 50; display: none; max-height: 200px; overflow-y: auto;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.24);
+        }
+        .custom-select-wrapper.open .custom-select-options { display: block; animation: selectFadeIn 0.1s ease-out; }
+        .custom-select-option { padding: 8px 12px; cursor: pointer; font-size: 0.95rem; color: var(--text-muted); display:flex; align-items:center; gap:8px;}
+        .custom-select-option:hover { background: #35373c; color: var(--text); }
+        .custom-select-option.selected { background: #404249; color: var(--text); }
+        @keyframes selectFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Glassmorphism card */
-        .glass {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 16px;
+        /* DM Sidebar Item */
+        .dm-user-item {
+            display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 4px; cursor: pointer; margin-bottom: 2px;
+            transition: background 0.1s;
+        }
+        .dm-user-item:hover { background: #35373c; }
+        .dm-user-item.active { background: #404249; color: white; }
+        
+        /* Spin utility for Lucide */
+        .lucide-spin { animation: spin 2s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #2b2d31; }
+        ::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; border: 2px solid #2b2d31; }
+        ::-webkit-scrollbar-thumb:hover { background: #111214; }
+
+        /* Glassmorphism overrides */
+        .glass, .glass-dark {
+            background: #2b2d31 !important;
+            border: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-radius: 8px !important;
         }
         .glass-dark {
-            background: rgba(0,0,0,0.25);
-            border: 1px solid rgba(255,255,255,0.06);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: 12px;
+            background: #1e1f22 !important;
         }
 
         /* Sidebar */
         #sidebar {
-            width: 260px;
-            min-width: 260px;
+            width: 240px;
+            min-width: 240px;
             height: 100vh;
-            background: linear-gradient(180deg, #1a1d2e 0%, #0f1117 100%);
-            border-right: 1px solid rgba(255,255,255,0.07);
+            background: #2b2d31 !important;
+            border-right: none !important;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
+            overflow-y: hidden;
             overflow-x: hidden;
             z-index: 10;
         }
+        #sidebar:hover { overflow-y: auto; }
+        
         /* Main */
         #main {
             flex: 1;
             height: 100vh;
             overflow-y: auto;
             overflow-x: hidden;
-            background: var(--bg-deep);
+            background: #313338 !important;
         }
 
         /* Nav item */
         .nav-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            border-radius: 10px;
+            gap: 12px;
+            padding: 8px;
+            margin: 2px 8px;
+            border-radius: 4px;
             cursor: pointer;
             color: var(--text-muted);
-            font-size: 0.875rem;
+            font-size: 0.95rem;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: background-color 0.1s ease, color 0.1s ease;
             user-select: none;
         }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+        .nav-item:hover { background: #35373c; color: var(--text); }
         .nav-item.active {
-            background: linear-gradient(135deg, rgba(124,58,237,0.25), rgba(99,102,241,0.15));
-            color: #a78bfa;
-            border: 1px solid rgba(124,58,237,0.3);
-            box-shadow: 0 0 16px rgba(124,58,237,0.15);
+            background: #404249 !important;
+            color: #fff !important;
+            border: none !important;
+            box-shadow: none !important;
         }
-        .nav-item.active .nav-icon { color: #a78bfa; }
+        .nav-item.active .nav-icon { color: #fff !important; }
 
         /* Stat cards */
         .stat-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
-            padding: 20px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            background: #2b2d31 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 16px !important;
+            transition: background 0.1s !important;
+            box-shadow: none !important;
         }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .stat-card:hover { transform: none !important; background: #2f3136 !important; box-shadow: none !important; }
 
         /* Buttons */
         .btn {
@@ -123,51 +154,49 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 10px 16px;
-            border-radius: 10px;
+            padding: 8px 16px;
+            border-radius: 3px;
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
             border: none;
-            transition: all 0.2s ease;
+            transition: background-color 0.15s ease;
             outline: none;
         }
-        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-green { background: linear-gradient(135deg, #059669, #10b981); color: white; }
-        .btn-green:hover:not(:disabled) { box-shadow: 0 0 20px rgba(16,185,129,0.4); transform: translateY(-1px); }
-        .btn-yellow { background: linear-gradient(135deg, #d97706, #f59e0b); color: white; }
-        .btn-yellow:hover:not(:disabled) { box-shadow: 0 0 20px rgba(245,158,11,0.4); transform: translateY(-1px); }
-        .btn-blue { background: linear-gradient(135deg, #2563eb, #6366f1); color: white; }
-        .btn-blue:hover:not(:disabled) { box-shadow: 0 0 20px rgba(99,102,241,0.4); transform: translateY(-1px); }
-        .btn-red { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; }
-        .btn-red:hover:not(:disabled) { box-shadow: 0 0 20px rgba(239,68,68,0.4); transform: translateY(-1px); }
-        .btn-purple { background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; }
-        .btn-purple:hover:not(:disabled) { box-shadow: 0 0 20px rgba(124,58,237,0.4); transform: translateY(-1px); }
-        .btn-ghost { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.08); }
-        .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: var(--text); }
-        .btn-icon { padding: 8px 10px; border-radius: 8px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-green { background: #23a559 !important; color: white !important; box-shadow: none !important; }
+        .btn-green:hover:not(:disabled) { background: #1a7a42 !important; transform: none !important; }
+        .btn-yellow { background: #f0b232 !important; color: white !important; box-shadow: none !important; }
+        .btn-yellow:hover:not(:disabled) { background: #b88622 !important; transform: none !important; }
+        .btn-blue, .btn-purple { background: #5865F2 !important; color: white !important; box-shadow: none !important; }
+        .btn-blue:hover:not(:disabled), .btn-purple:hover:not(:disabled) { background: #4752c4 !important; transform: none !important; }
+        .btn-red { background: #da373c !important; color: white !important; box-shadow: none !important; }
+        .btn-red:hover:not(:disabled) { background: #a1282c !important; transform: none !important; }
+        .btn-ghost { background: transparent !important; color: var(--text) !important; border: 1px solid var(--border) !important; box-shadow: none !important; }
+        .btn-ghost:hover:not(:disabled) { background: #3f4147 !important; border-color: transparent !important; }
+        .btn-icon { padding: 8px 10px; border-radius: 4px; }
 
         /* Tab panels */
-        .tab-panel { display: none; animation: fadeIn 0.25s ease; }
-        .tab-panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeIn 0.15s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* Status badge */
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 3px 10px;
-            border-radius: 99px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
             text-transform: uppercase;
+            border: none !important;
         }
-        .badge-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
-        .badge-red { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
-        .badge-blue { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.25); }
-        .badge-cyan { background: rgba(34,211,238,0.15); color: #22d3ee; border: 1px solid rgba(34,211,238,0.25); }
+        .badge-green { background: #23a559 !important; color: white !important; }
+        .badge-red { background: #da373c !important; color: white !important; }
+        .badge-blue { background: #5865F2 !important; color: white !important; }
+        .badge-cyan { background: #00a8fc !important; color: white !important; }
 
         /* Pulse dot */
         .pulse-dot {
@@ -175,173 +204,153 @@
             border-radius: 50%;
             display: inline-block;
         }
-        .pulse-dot.green {
-            background: #10b981;
-            box-shadow: 0 0 0 0 rgba(16,185,129,0.6);
-            animation: pulseGreen 1.5s infinite;
-        }
-        .pulse-dot.red {
-            background: #ef4444;
-            box-shadow: 0 0 0 0 rgba(239,68,68,0.6);
-            animation: pulseRed 1.5s infinite;
-        }
-        @keyframes pulseGreen {
-            0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
-            70% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
-            100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
-        }
-        @keyframes pulseRed {
-            0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); }
-            70% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
-            100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-        }
+        .pulse-dot.green { background: #23a559; box-shadow: none !important; animation: none !important; }
+        .pulse-dot.red { background: #da373c; box-shadow: none !important; animation: none !important; }
 
         /* Member card */
         .member-card {
-            background: rgba(255,255,255,0.025);
-            border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 14px;
-            padding: 14px 16px;
+            background: #2b2d31 !important;
+            border: none !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            transition: background 0.2s, border-color 0.2s;
+            transition: background 0.1s !important;
         }
-        .member-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+        .member-card:hover { background: #35373c !important; border: none !important; }
 
         /* Avatar ring */
         .avatar-ring {
             border-radius: 50%;
-            padding: 2px;
-            background: linear-gradient(135deg, #7c3aed, #22d3ee);
+            padding: 0 !important;
+            background: none !important;
         }
-        .avatar-ring img { border-radius: 50%; display: block; border: 2px solid var(--bg-card); }
+        .avatar-ring img { border-radius: 50%; display: block; border: none !important; }
 
         /* Chat bubbles */
         .chat-bubble {
             max-width: 72%;
-            padding: 10px 14px;
-            border-radius: 14px;
-            font-size: 0.875rem;
-            line-height: 1.5;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.375;
             word-break: break-word;
         }
         .bubble-bot {
-            background: linear-gradient(135deg, #7c3aed, #6366f1);
-            color: white;
-            border-bottom-right-radius: 4px;
-            align-self: flex-end;
+            background: #2b2d31 !important;
+            color: var(--text) !important;
+            align-self: flex-start !important;
+            border-radius: 8px !important;
         }
         .bubble-user {
-            background: rgba(255,255,255,0.07);
-            color: var(--text);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-bottom-left-radius: 4px;
-            align-self: flex-start;
+            background: #2b2d31 !important;
+            color: var(--text) !important;
+            border: none !important;
+            align-self: flex-start !important;
+            border-radius: 8px !important;
         }
 
         /* Select */
         select {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--text);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 0.875rem;
+            background: #1e1f22 !important;
+            border: none !important;
+            color: var(--text) !important;
+            border-radius: 4px !important;
+            padding: 10px 12px !important;
+            font-size: 0.95rem;
             outline: none;
             appearance: none;
             -webkit-appearance: none;
             cursor: pointer;
-            transition: border-color 0.2s;
         }
-        select:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-        select option { background: #1a1d2e; }
+        select:focus { outline: 2px solid #00a8fc !important; box-shadow: none !important; }
+        select option { background: #2b2d31 !important; }
 
         /* Input */
-        input[type="text"] {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--text);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 0.875rem;
+        input[type="text"], textarea {
+            background: #1e1f22 !important;
+            border: none !important;
+            color: var(--text) !important;
+            border-radius: 4px !important;
+            padding: 10px 12px !important;
+            font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s;
         }
-        input[type="text"]:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-        input[type="text"]::placeholder { color: var(--text-muted); }
-        input[type="text"]:disabled { opacity: 0.4; cursor: not-allowed; }
+        input[type="text"]:focus, textarea:focus { outline: 2px solid #00a8fc !important; box-shadow: none !important; border: none !important; }
+        input[type="text"]::placeholder, textarea::placeholder { color: var(--text-muted) !important; }
+        input[type="text"]:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Modal backdrop */
         #move-modal {
             position: fixed; inset: 0; z-index: 100;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.7) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.15s ease;
         }
         #move-modal.open { opacity: 1; pointer-events: all; }
         .modal-box {
-            background: linear-gradient(135deg, #1a1d2e, #252840);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 28px;
+            background: #313338 !important;
+            border: none !important;
+            border-radius: 4px !important;
+            padding: 24px !important;
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.15);
-            transform: scale(0.95) translateY(10px);
-            transition: transform 0.25s ease;
+            max-width: 440px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.24) !important;
+            transform: scale(0.95);
+            transition: transform 0.15s ease !important;
         }
-        #move-modal.open .modal-box { transform: scale(1) translateY(0); }
+        #move-modal.open .modal-box { transform: scale(1) !important; }
 
-        /* Gradient icon bg */
-        .icon-bg-blue { background: linear-gradient(135deg, rgba(37,99,235,0.3), rgba(99,102,241,0.2)); color: #60a5fa; }
-        .icon-bg-green { background: linear-gradient(135deg, rgba(5,150,105,0.3), rgba(16,185,129,0.2)); color: #34d399; }
-        .icon-bg-purple { background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(99,102,241,0.2)); color: #a78bfa; }
-        .icon-bg-cyan { background: linear-gradient(135deg, rgba(8,145,178,0.3), rgba(34,211,238,0.2)); color: #22d3ee; }
+        /* Gradient icon bg removal */
+        .icon-bg-blue, .icon-bg-green, .icon-bg-purple, .icon-bg-cyan { 
+            background: transparent !important; color: var(--text-muted) !important; 
+        }
 
         /* Divider */
-        .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 0; }
+        .divider { height: 1px; background: rgba(255,255,255,0.06) !important; margin: 8px 16px !important; }
 
         /* Sidebar section label */
         .sidebar-label {
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: rgba(148,163,184,0.5);
-            padding: 0 14px;
-            margin-bottom: 4px;
+            font-size: 0.75rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            color: #949ba4 !important;
+            padding: 0 16px !important;
+            margin-bottom: 4px !important;
+            letter-spacing: normal !important;
         }
 
         /* Top bar */
         #topbar {
-            background: rgba(15,17,23,0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            padding: 14px 28px;
+            background: #313338 !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-bottom: 1px solid #1e1f22 !important;
+            padding: 12px 16px !important;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
             top: 0;
             z-index: 5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
         }
 
         /* Voice channel info card */
         .voice-info-card {
-            background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(99,102,241,0.08));
-            border: 1px solid rgba(124,58,237,0.2);
-            border-radius: 16px;
-            padding: 20px;
+            background: #2b2d31 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 16px !important;
         }
 
         /* DM chat area */
@@ -356,7 +365,7 @@
 
         /* Responsive sidebar toggle */
         @media (max-width: 768px) {
-            #sidebar { position: fixed; left: -260px; transition: left 0.3s ease; }
+            #sidebar { position: fixed; left: -240px; transition: left 0.3s ease; }
             #sidebar.open { left: 0; }
             #main { width: 100%; }
         }
@@ -383,7 +392,7 @@
 
             <!-- Server info pill -->
             <div class="glass-dark" style="padding:10px 14px; display:flex; align-items:center; gap:10px;">
-                <i class="fa-solid fa-server" style="color:#6366f1; font-size:0.8rem;"></i>
+                <i data-lucide="server" class="" style="color:#6366f1; font-size:0.8rem;" style="width:1em;height:1em;display:inline-block;"></i>
                 <div>
                     <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Members</div>
                     <div id="server-members" style="font-size:0.875rem; font-weight:700; color:#e2e8f0;">--</div>
@@ -398,29 +407,29 @@
             <div class="sidebar-label" style="margin-bottom:8px;">Navigation</div>
             <nav style="display:flex; flex-direction:column; gap:3px;">
                 <div class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
-                    <i class="fa-solid fa-gauge-high nav-icon" style="width:16px; text-align:center;"></i>
+                    <i data-lucide="layout-dashboard" style="width:16px; height:16px; text-align:center; display:inline-block;"></i>
                     <span>Dashboard</span>
                 </div>
                 <div class="nav-item" id="nav-voice" onclick="switchTab('voice')">
-                    <i class="fa-solid fa-headphones nav-icon" style="width:16px; text-align:center;"></i>
+                    <i data-lucide="headphones" style="width:16px; height:16px; text-align:center; display:inline-block;"></i>
                     <span>Voice Control</span>
                 </div>
                 <div class="nav-item" id="nav-dm" onclick="switchTab('dm')">
-                    <i class="fa-solid fa-comments nav-icon" style="width:16px; text-align:center;"></i>
+                    <i data-lucide="message-square" style="width:16px; height:16px; text-align:center; display:inline-block;"></i>
                     <span>DM Chat</span>
                     <span id="dm-badge" style="display:none; margin-left:auto; background:#ef4444; color:white; font-size:0.6rem; font-weight:700; padding:2px 6px; border-radius:99px;">NEW</span>
                 </div>
                 <div class="nav-item" id="nav-announce" onclick="switchTab('announce')">
-                    <i class="fa-solid fa-bullhorn nav-icon" style="width:16px; text-align:center;"></i>
+                    <i data-lucide="megaphone" style="width:16px; height:16px; text-align:center; display:inline-block;"></i>
                     <span>Announce</span>
                 </div>
                 <div class="nav-item" id="nav-logs" onclick="switchTab('logs')">
-                    <i class="fa-solid fa-list-ul nav-icon" style="width:16px; text-align:center;"></i>
+                    <i data-lucide="list" style="width:16px; height:16px; text-align:center; display:inline-block;"></i>
                     <span>Activity Log</span>
                     <span id="log-badge" style="display:none; margin-left:auto; background:#6366f1; color:white; font-size:0.6rem; font-weight:700; padding:2px 6px; border-radius:99px;">NEW</span>
                 </div>
                 <div class="nav-item" id="nav-settings" onclick="switchTab('settings')">
-                    <i class="fa-solid fa-sliders nav-icon" style="width:16px; text-align:center;"></i>
+                    <i data-lucide="settings" style="width:16px; height:16px; text-align:center; display:inline-block;"></i>
                     <span>Settings</span>
                 </div>
             </nav>
@@ -433,16 +442,16 @@
             <div class="sidebar-label" style="margin-bottom:8px;">Bot Voice</div>
             <div style="display:flex; flex-direction:column; gap:6px;">
                 <button class="btn btn-green" style="width:100%; justify-content:flex-start;" onclick="botAction('connect')">
-                    <i class="fa-solid fa-plug" style="width:14px;"></i> Connect
+                    <i data-lucide="plug" class="" style="width:14px;" style="width:1em;height:1em;display:inline-block;"></i> Connect
                 </button>
                 <button class="btn btn-yellow" style="width:100%; justify-content:flex-start;" onclick="botAction('reconnect')">
-                    <i class="fa-solid fa-rotate-right" style="width:14px;"></i> Reconnect
+                    <i data-lucide="refresh-cw" class="" style="width:14px;" style="width:1em;height:1em;display:inline-block;"></i> Reconnect
                 </button>
                 <button class="btn btn-blue" style="width:100%; justify-content:flex-start;" onclick="openMoveModal('bot')">
-                    <i class="fa-solid fa-right-left" style="width:14px;"></i> Move Bot
+                    <i data-lucide="arrow-left-right" class="" style="width:14px;" style="width:1em;height:1em;display:inline-block;"></i> Move Bot
                 </button>
                 <button class="btn btn-red" style="width:100%; justify-content:flex-start;" onclick="botAction('disconnect')">
-                    <i class="fa-solid fa-power-off" style="width:14px;"></i> Disconnect
+                    <i data-lucide="power" class="" style="width:14px;" style="width:1em;height:1em;display:inline-block;"></i> Disconnect
                 </button>
             </div>
         </div>
@@ -459,7 +468,7 @@
         <div id="topbar">
             <div style="display:flex; align-items:center; gap:12px;">
                 <button onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none; background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.1rem;" id="menu-toggle">
-                    <i class="fa-solid fa-bars"></i>
+                    <i data-lucide="menu" class="" style="width:1em;height:1em;display:inline-block;"></i>
                 </button>
                 <div>
                     <h1 id="page-title" style="font-size:1.1rem; font-weight:700; color:#e2e8f0;">Dashboard</h1>
@@ -484,7 +493,7 @@
                     <div class="stat-card">
                         <div style="display:flex; align-items:center; gap:14px;">
                             <div class="icon-bg-blue" style="width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">
-                                <i class="fa-solid fa-signal"></i>
+                                <i data-lucide="activity" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Ping</div>
@@ -495,7 +504,7 @@
                     <div class="stat-card">
                         <div style="display:flex; align-items:center; gap:14px;">
                             <div class="icon-bg-green" style="width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">
-                                <i class="fa-solid fa-clock"></i>
+                                <i data-lucide="clock" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Uptime</div>
@@ -506,7 +515,7 @@
                     <div class="stat-card">
                         <div style="display:flex; align-items:center; gap:14px;">
                             <div class="icon-bg-purple" style="width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">
-                                <i class="fa-solid fa-layer-group"></i>
+                                <i data-lucide="layers" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Servers</div>
@@ -517,7 +526,7 @@
                     <div class="stat-card">
                         <div style="display:flex; align-items:center; gap:14px;">
                             <div class="icon-bg-cyan" style="width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">
-                                <i class="fa-solid fa-users"></i>
+                                <i data-lucide="users" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Users</div>
@@ -531,8 +540,8 @@
                 <div class="voice-info-card">
                     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
                         <div style="display:flex; align-items:center; gap:14px;">
-                            <div style="width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg,#7c3aed,#6366f1); display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:white; flex-shrink:0;">
-                                <i class="fa-solid fa-volume-high"></i>
+                            <div style="width:48px; height:48px; border-radius:14px; background:#2b2d31; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:white; flex-shrink:0;">
+                                <i data-lucide="volume-2" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-size:0.7rem; color:#a78bfa; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px;">Current Voice Channel</div>
@@ -549,7 +558,7 @@
                 <!-- Channel info + bulk actions -->
                 <div class="glass" style="padding:20px; margin-bottom:20px;">
                     <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px;">
-                        <i class="fa-solid fa-headphones" style="color:#6366f1; font-size:1.1rem;"></i>
+                        <i data-lucide="headphones" class="" style="color:#6366f1; font-size:1.1rem;" style="width:1em;height:1em;display:inline-block;"></i>
                         <div style="flex:1; min-width:200px;">
                             <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Voice Channel</div>
                             <div style="font-size:0.9rem; font-weight:600; color:#e2e8f0;" id="voice-channel-name-voice">--</div>
@@ -561,22 +570,22 @@
                         <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">Bulk Actions</div>
                         <div style="display:flex; flex-wrap:wrap; gap:8px;">
                             <button class="btn btn-ghost" style="font-size:0.8rem; padding:7px 12px;" onclick="bulkAction('mute_all')">
-                                <i class="fa-solid fa-microphone-slash"></i> Mute All
+                                <i data-lucide="mic-off" class="" style="width:1em;height:1em;display:inline-block;"></i> Mute All
                             </button>
                             <button class="btn btn-ghost" style="font-size:0.8rem; padding:7px 12px;" onclick="bulkAction('unmute_all')">
-                                <i class="fa-solid fa-microphone"></i> Unmute All
+                                <i data-lucide="mic" class="" style="width:1em;height:1em;display:inline-block;"></i> Unmute All
                             </button>
                             <button class="btn btn-ghost" style="font-size:0.8rem; padding:7px 12px;" onclick="bulkAction('deafen_all')">
-                                <i class="fa-solid fa-headphones-simple"></i> Deafen All
+                                <i data-lucide="headphones" class="" style="width:1em;height:1em;display:inline-block;"></i> Deafen All
                             </button>
                             <button class="btn btn-ghost" style="font-size:0.8rem; padding:7px 12px;" onclick="bulkAction('undeafen_all')">
-                                <i class="fa-solid fa-headphones"></i> Undeafen All
+                                <i data-lucide="headphones" class="" style="width:1em;height:1em;display:inline-block;"></i> Undeafen All
                             </button>
                             <button class="btn btn-red" style="font-size:0.8rem; padding:7px 12px;" onclick="confirmKickAll()">
-                                <i class="fa-solid fa-phone-slash"></i> Kick All
+                                <i data-lucide="phone-off" class="" style="width:1em;height:1em;display:inline-block;"></i> Kick All
                             </button>
                             <button class="btn btn-purple" style="font-size:0.8rem; padding:7px 12px;" onclick="openBroadcastModal()">
-                                <i class="fa-solid fa-paper-plane"></i> Broadcast DM
+                                <i data-lucide="send" class="" style="width:1em;height:1em;display:inline-block;"></i> Broadcast DM
                             </button>
                         </div>
                     </div>
@@ -585,71 +594,68 @@
                 <!-- Members grid -->
                 <div id="members-list" style="display:flex; flex-direction:column; gap:10px;">
                     <div style="text-align:center; padding:40px; color:#475569;">
-                        <i class="fa-solid fa-spinner fa-spin" style="font-size:1.5rem; margin-bottom:10px; display:block;"></i>
+                        <i data-lucide="loader-2" class="lucide-spin " style="font-size:1.5rem; margin-bottom:10px; display:block;" style="width:1em;height:1em;display:inline-block;"></i>
                         Loading members...
                     </div>
                 </div>
             </div>
 
+            
             <!-- ===== DM TAB ===== -->
             <div class="tab-panel" id="tab-dm">
                 <div style="display:grid; grid-template-columns:240px 1fr; gap:20px; height:calc(100vh - 140px); min-height:400px;">
                     <!-- User list sidebar -->
-                    <div class="glass" style="padding:16px; display:flex; flex-direction:column; gap:12px; overflow:hidden;">
-                        <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Select User</div>
-                        <div style="position:relative;">
-                            <select id="chat-user-select" onchange="loadUserChat(this.value)" style="width:100%; padding-right:36px;">
-                                <option value="">-- Select User --</option>
-                            </select>
-                            <i class="fa-solid fa-chevron-down" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#64748b; pointer-events:none; font-size:0.75rem;"></i>
+                    <div style="background:#2b2d31; border-radius:4px; display:flex; flex-direction:column; overflow:hidden;">
+                        <div style="padding:16px; border-bottom:1px solid #1e1f22;">
+                            <div style="font-size:0.75rem; color:#949ba4; font-weight:700; text-transform:uppercase;">Direct Messages</div>
                         </div>
-                        <div style="font-size:0.75rem; color:#475569; text-align:center; margin-top:auto;">
-                            <i class="fa-solid fa-lock" style="margin-bottom:4px; display:block;"></i>
-                            End-to-end via Discord DM
+                        <div id="dm-user-list" style="flex:1; overflow-y:auto; padding:8px;">
+                            <div style="text-align:center; padding:20px; color:#949ba4; font-size:0.875rem;"><i data-lucide="loader-2" class="lucide-spin" style="margin-bottom:8px;"></i><br>Waiting for users...</div>
                         </div>
                     </div>
 
                     <!-- Chat window -->
-                    <div class="glass" style="display:flex; flex-direction:column; overflow:hidden;">
+                    <div style="background:#313338; display:flex; flex-direction:column; overflow:hidden; border-radius:4px; border:1px solid #1e1f22;">
                         <!-- Chat header -->
-                        <div style="padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:10px;">
-                            <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#6366f1); display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:white;">
-                                <i class="fa-solid fa-user"></i>
+                        <div style="padding:14px 18px; border-bottom:1px solid #1e1f22; display:flex; align-items:center; gap:10px; background:#2b2d31;">
+                            <div style="width:32px; height:32px; border-radius:50%; background:#1e1f22; display:flex; align-items:center; justify-content:center; color:#949ba4;">
+                                <i data-lucide="at-sign"></i>
                             </div>
                             <div>
-                                <div id="chat-header-name" style="font-size:0.875rem; font-weight:700; color:#e2e8f0;">No user selected</div>
-                                <div style="font-size:0.7rem; color:#64748b;">Direct Message</div>
+                                <div id="chat-header-name" style="font-size:0.95rem; font-weight:700; color:#dbdee1;">No user selected</div>
+                                <div id="chat-header-status" style="font-size:0.75rem; color:#949ba4;">Select a user from the list</div>
                             </div>
                         </div>
 
                         <!-- Messages -->
-                        <div id="chat-messages">
-                            <div style="display:flex; flex:1; align-items:center; justify-content:center; height:100%; color:#475569; font-style:italic; font-size:0.875rem; text-align:center; padding:20px;">
+                        <div id="chat-messages" style="flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+                            <div style="display:flex; flex:1; align-items:center; justify-content:center; height:100%; color:#949ba4; font-size:0.95rem; text-align:center;">
                                 <div>
-                                    <i class="fa-solid fa-comments" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.3;"></i>
-                                    Select a user to view conversation
+                                    <i data-lucide="message-square" style="width:48px; height:48px; margin-bottom:12px; opacity:0.3; display:block; margin:0 auto;"></i>
+                                    Select a user to start chatting
                                 </div>
                             </div>
                         </div>
 
                         <!-- Input bar -->
-                        <div style="padding:14px 16px; border-top:1px solid rgba(255,255,255,0.06); display:flex; gap:10px; align-items:center;">
-                            <input type="text" id="chat-input" placeholder="Type a DM message..." style="flex:1;" disabled>
-                            <button id="btn-send-chat" class="btn btn-purple btn-icon" onclick="sendChat()" disabled>
-                                <i class="fa-solid fa-paper-plane"></i>
+                        <div style="padding:14px 16px; background:#2b2d31; display:flex; gap:10px; align-items:center;">
+                            <input type="text" id="chat-input" placeholder="Message @User" style="flex:1;" disabled>
+                            <button id="btn-send-chat" class="btn btn-purple btn-icon" onclick="sendChat()" disabled style="padding:10px;">
+                                <i data-lucide="send"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
+
             <!-- ===== ANNOUNCE TAB ===== -->
             <div class="tab-panel" id="tab-announce">
                 <div style="max-width:680px; display:flex; flex-direction:column; gap:20px;">
                     <div class="glass" style="padding:24px;">
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
-                            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,rgba(37,99,235,0.3),rgba(99,102,241,0.2)); display:flex; align-items:center; justify-content:center; color:#60a5fa;">
-                                <i class="fa-solid fa-hashtag"></i>
+                            <div style="width:36px; height:36px; border-radius:10px; background:#2b2d31; display:flex; align-items:center; justify-content:center; color:#60a5fa;">
+                                <i data-lucide="hash" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-weight:700; font-size:0.9rem; color:#e2e8f0;">Send to Text Channel</div>
@@ -661,7 +667,7 @@
                                 <label style="font-size:0.75rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:6px;">Target Channel</label>
                                 <div style="position:relative;">
                                     <select id="announce-channel-select" style="width:100%; padding-right:36px;"><option value="">-- Select Channel --</option></select>
-                                    <i class="fa-solid fa-chevron-down" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#64748b; pointer-events:none; font-size:0.75rem;"></i>
+                                    <i data-lucide="chevron-down" class="" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#64748b; pointer-events:none; font-size:0.75rem;" style="width:1em;height:1em;display:inline-block;"></i>
                                 </div>
                             </div>
                             <div>
@@ -669,15 +675,15 @@
                                 <textarea id="announce-message" placeholder="Type your announcement..." rows="4" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; border-radius:10px; padding:10px 14px; font-size:0.875rem; outline:none; resize:vertical; font-family:inherit; transition:border-color 0.2s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
                             </div>
                             <div style="display:flex; align-items:center; gap:10px;">
-                                <button class="btn btn-blue" onclick="sendAnnounce()"><i class="fa-solid fa-bullhorn"></i> Send Announcement</button>
+                                <button class="btn btn-blue" onclick="sendAnnounce()"><i data-lucide="megaphone" class="" style="width:1em;height:1em;display:inline-block;"></i> Send Announcement</button>
                                 <span id="announce-status" style="font-size:0.8rem; color:#64748b;"></span>
                             </div>
                         </div>
                     </div>
                     <div class="glass" style="padding:24px;">
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
-                            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(99,102,241,0.2)); display:flex; align-items:center; justify-content:center; color:#a78bfa;">
-                                <i class="fa-solid fa-paper-plane"></i>
+                            <div style="width:36px; height:36px; border-radius:10px; background:#2b2d31; display:flex; align-items:center; justify-content:center; color:#a78bfa;">
+                                <i data-lucide="send" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-weight:700; font-size:0.9rem; color:#e2e8f0;">Broadcast DM</div>
@@ -690,7 +696,7 @@
                                 <textarea id="broadcast-message" placeholder="Type your broadcast message..." rows="4" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; border-radius:10px; padding:10px 14px; font-size:0.875rem; outline:none; resize:vertical; font-family:inherit; transition:border-color 0.2s;" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
                             </div>
                             <div style="display:flex; align-items:center; gap:10px;">
-                                <button class="btn btn-purple" onclick="sendBroadcast()"><i class="fa-solid fa-paper-plane"></i> Send Broadcast</button>
+                                <button class="btn btn-purple" onclick="sendBroadcast()"><i data-lucide="send" class="" style="width:1em;height:1em;display:inline-block;"></i> Send Broadcast</button>
                                 <span id="broadcast-status" style="font-size:0.8rem; color:#64748b;"></span>
                             </div>
                         </div>
@@ -703,12 +709,12 @@
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
                     <div style="font-size:0.75rem; color:#64748b;">Showing last 100 events — auto updates in realtime</div>
                     <button class="btn btn-ghost" style="font-size:0.8rem; padding:7px 12px;" onclick="clearLogs()">
-                        <i class="fa-solid fa-trash"></i> Clear Display
+                        <i data-lucide="trash-2" class="" style="width:1em;height:1em;display:inline-block;"></i> Clear Display
                     </button>
                 </div>
                 <div id="logs-list" style="display:flex; flex-direction:column; gap:6px;">
                     <div style="text-align:center; padding:40px; color:#475569;">
-                        <i class="fa-solid fa-spinner fa-spin" style="font-size:1.5rem; margin-bottom:10px; display:block;"></i>
+                        <i data-lucide="loader-2" class="lucide-spin " style="font-size:1.5rem; margin-bottom:10px; display:block;" style="width:1em;height:1em;display:inline-block;"></i>
                         Loading logs...
                     </div>
                 </div>
@@ -721,8 +727,8 @@
                     <!-- Bot Identity -->
                     <div class="glass" style="padding:24px;">
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(99,102,241,0.2));display:flex;align-items:center;justify-content:center;color:#a78bfa;">
-                                <i class="fa-solid fa-robot"></i>
+                            <div style="width:36px;height:36px;border-radius:10px;background:#2b2d31;display:flex;align-items:center;justify-content:center;color:#a78bfa;">
+                                <i data-lucide="bot" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Bot Identity</div>
@@ -749,7 +755,7 @@
                                 <div style="display:flex;gap:8px;">
                                     <input type="text" id="settings-username-input" placeholder="Enter new username..." style="flex:1;min-width:0;">
                                     <button class="btn btn-purple" style="padding:10px 14px;white-space:nowrap;" onclick="updateUsername()">
-                                        <i class="fa-solid fa-check"></i>
+                                        <i data-lucide="check" class="" style="width:1em;height:1em;display:inline-block;"></i>
                                     </button>
                                 </div>
                                 <div id="settings-username-status" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
@@ -760,7 +766,7 @@
                                 <div style="display:flex;gap:8px;">
                                     <input type="text" id="settings-avatar-input" placeholder="https://i.imgur.com/..." style="flex:1;min-width:0;">
                                     <button class="btn btn-purple" style="padding:10px 14px;white-space:nowrap;" onclick="updateAvatar()">
-                                        <i class="fa-solid fa-check"></i>
+                                        <i data-lucide="check" class="" style="width:1em;height:1em;display:inline-block;"></i>
                                     </button>
                                 </div>
                                 <div id="settings-avatar-status" style="font-size:0.75rem;margin-top:6px;min-height:18px;"></div>
@@ -771,8 +777,8 @@
                     <!-- Bot Presence -->
                     <div class="glass" style="padding:24px;">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(34,211,238,0.2),rgba(8,145,178,0.15));display:flex;align-items:center;justify-content:center;color:#22d3ee;">
-                                <i class="fa-solid fa-circle-dot"></i>
+                            <div style="width:36px;height:36px;border-radius:10px;background:#2b2d31;display:flex;align-items:center;justify-content:center;color:#22d3ee;">
+                                <i data-lucide="circle-dot" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Bot Presence</div>
@@ -790,7 +796,7 @@
                                         <option value="dnd">🔴 Do Not Disturb</option>
                                         <option value="invisible">⚫ Invisible</option>
                                     </select>
-                                    <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;"></i>
+                                    <i data-lucide="chevron-down" class="" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;" style="width:1em;height:1em;display:inline-block;"></i>
                                 </div>
                             </div>
                             <!-- Activity Type -->
@@ -803,7 +809,7 @@
                                         <option value="LISTENING">🎵 Listening to</option>
                                         <option value="COMPETING">🏆 Competing in</option>
                                     </select>
-                                    <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;"></i>
+                                    <i data-lucide="chevron-down" class="" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;" style="width:1em;height:1em;display:inline-block;"></i>
                                 </div>
                             </div>
                         </div>
@@ -811,8 +817,8 @@
                             <label style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Activity Text <span style="font-weight:400;text-transform:none;">(leave empty to clear)</span></label>
                             <input type="text" id="settings-activity-text" placeholder="e.g. with your server..." style="width:100%;">
                         </div>
-                        <button class="btn btn-cyan" onclick="savePresence()" style="background:linear-gradient(135deg,#0891b2,#22d3ee);color:#0f1117;">
-                            <i class="fa-solid fa-floppy-disk"></i> Apply Presence
+                        <button class="btn btn-cyan" onclick="savePresence()" style="background:#2b2d31;color:#0f1117;">
+                            <i data-lucide="save" class="" style="width:1em;height:1em;display:inline-block;"></i> Apply Presence
                         </button>
                         <span id="settings-presence-status" style="font-size:0.8rem;color:#64748b;margin-left:12px;"></span>
                     </div>
@@ -820,8 +826,8 @@
                     <!-- Voice Settings -->
                     <div class="glass" style="padding:24px;">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(5,150,105,0.3),rgba(16,185,129,0.2));display:flex;align-items:center;justify-content:center;color:#34d399;">
-                                <i class="fa-solid fa-headphones"></i>
+                            <div style="width:36px;height:36px;border-radius:10px;background:#2b2d31;display:flex;align-items:center;justify-content:center;color:#34d399;">
+                                <i data-lucide="headphones" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Voice Settings</div>
@@ -835,7 +841,7 @@
                                     <select id="settings-default-channel" style="width:100%;padding-right:36px;">
                                         <option value="">-- Select Channel --</option>
                                     </select>
-                                    <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;"></i>
+                                    <i data-lucide="chevron-down" class="" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:0.75rem;" style="width:1em;height:1em;display:inline-block;"></i>
                                 </div>
                                 <div style="font-size:0.72rem;color:#475569;margin-top:5px;">Bot will join this channel on connect/reconnect</div>
                             </div>
@@ -854,7 +860,7 @@
                         </div>
                         <div style="margin-top:16px;">
                             <button class="btn btn-green" onclick="saveVoiceSettings()">
-                                <i class="fa-solid fa-floppy-disk"></i> Save Voice Settings
+                                <i data-lucide="save" class="" style="width:1em;height:1em;display:inline-block;"></i> Save Voice Settings
                             </button>
                             <span id="settings-voice-status" style="font-size:0.8rem;color:#64748b;margin-left:12px;"></span>
                         </div>
@@ -863,8 +869,8 @@
                     <!-- Panel Settings -->
                     <div class="glass" style="padding:24px;">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,0.3),rgba(99,102,241,0.2));display:flex;align-items:center;justify-content:center;color:#60a5fa;">
-                                <i class="fa-solid fa-palette"></i>
+                            <div style="width:36px;height:36px;border-radius:10px;background:#2b2d31;display:flex;align-items:center;justify-content:center;color:#60a5fa;">
+                                <i data-lucide="palette" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-weight:700;font-size:0.9rem;color:#e2e8f0;">Panel Settings</div>
@@ -877,7 +883,7 @@
                             <div style="font-size:0.72rem;color:#475569;margin-top:5px;">Shown in browser tab title</div>
                         </div>
                         <button class="btn btn-blue" onclick="savePanelSettings()">
-                            <i class="fa-solid fa-floppy-disk"></i> Save Panel Settings
+                            <i data-lucide="save" class="" style="width:1em;height:1em;display:inline-block;"></i> Save Panel Settings
                         </button>
                         <span id="settings-panel-status" style="font-size:0.8rem;color:#64748b;margin-left:12px;"></span>
                     </div>
@@ -886,7 +892,7 @@
                     <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:16px;padding:24px;">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
                             <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;color:#f87171;">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <i data-lucide="alert-triangle" class="" style="width:1em;height:1em;display:inline-block;"></i>
                             </div>
                             <div>
                                 <div style="font-weight:700;font-size:0.9rem;color:#fca5a5;">Danger Zone</div>
@@ -895,7 +901,7 @@
                         </div>
                         <div style="display:flex;flex-wrap:wrap;gap:10px;">
                             <button class="btn btn-red" onclick="clearChatHistory()">
-                                <i class="fa-solid fa-trash"></i> Clear All Chat History
+                                <i data-lucide="trash-2" class="" style="width:1em;height:1em;display:inline-block;"></i> Clear All Chat History
                             </button>
                         </div>
                     </div>
@@ -908,8 +914,8 @@
     <div id="move-modal">
         <div class="modal-box">
             <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
-                <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,#7c3aed,#6366f1); display:flex; align-items:center; justify-content:center; color:white; font-size:1rem; flex-shrink:0;">
-                    <i class="fa-solid fa-right-left"></i>
+                <div style="width:40px; height:40px; border-radius:12px; background:#2b2d31; display:flex; align-items:center; justify-content:center; color:white; font-size:1rem; flex-shrink:0;">
+                    <i data-lucide="arrow-left-right" class="" style="width:1em;height:1em;display:inline-block;"></i>
                 </div>
                 <div>
                     <div style="font-size:1rem; font-weight:700; color:#e2e8f0;">Move <span id="move-target-name">...</span></div>
@@ -918,12 +924,12 @@
             </div>
             <div style="position:relative; margin-bottom:20px;">
                 <select id="channel-dropdown" style="width:100%; padding-right:36px;"></select>
-                <i class="fa-solid fa-chevron-down" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#64748b; pointer-events:none; font-size:0.75rem;"></i>
+                <i data-lucide="chevron-down" class="" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#64748b; pointer-events:none; font-size:0.75rem;" style="width:1em;height:1em;display:inline-block;"></i>
             </div>
             <div style="display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn btn-ghost" onclick="closeMoveModal()">Cancel</button>
                 <button class="btn btn-purple" onclick="confirmMove()">
-                    <i class="fa-solid fa-check"></i> Confirm Move
+                    <i data-lucide="check" class="" style="width:1em;height:1em;display:inline-block;"></i> Confirm Move
                 </button>
             </div>
         </div>
@@ -1038,11 +1044,11 @@
             const vBadge = document.getElementById('voice-status-badge');
             const vNameVoice = document.getElementById('voice-channel-name-voice');
             if (isConnected) {
-                vStatus.innerHTML = '<i class="fa-solid fa-volume-high" style="color:#a78bfa; margin-right:8px;"></i>' + data.voice.channelName;
+                vStatus.innerHTML = '<i data-lucide="volume-2" class="" style="color:#a78bfa; margin-right:8px;" style="width:1em;height:1em;display:inline-block;"></i>' + data.voice.channelName;
                 vBadge.innerHTML = '<span class="badge badge-green"><span class="pulse-dot green" style="width:6px;height:6px;"></span> Connected</span>';
                 if (vNameVoice) vNameVoice.textContent = data.voice.channelName;
             } else {
-                vStatus.innerHTML = '<i class="fa-solid fa-volume-xmark" style="color:#f87171; margin-right:8px;"></i>Not connected';
+                vStatus.innerHTML = '<i data-lucide="volume-x" class="" style="color:#f87171; margin-right:8px;" style="width:1em;height:1em;display:inline-block;"></i>Not connected';
                 vBadge.innerHTML = '<span class="badge badge-red">Disconnected</span>';
                 if (vNameVoice) vNameVoice.textContent = 'Not connected';
             }
@@ -1056,6 +1062,7 @@
             // Render members
             renderMembers(data.members);
 
+            renderDMUsers(data.allServerUsers);
             // Populate user dropdown (once)
             if (!userDropdownPopulated && data.allServerUsers && data.allServerUsers.length > 0) {
                 const select = document.getElementById('chat-user-select');
@@ -1097,7 +1104,7 @@
         function renderMembers(members) {
             const list = document.getElementById('members-list');
             if (!members || members.length === 0) {
-                list.innerHTML = '<div style="text-align:center; padding:48px 20px; color:#475569;"><i class="fa-solid fa-ghost" style="font-size:2rem; margin-bottom:12px; display:block; opacity:0.4;"></i><p style="font-style:italic;">Channel is empty</p></div>';
+                list.innerHTML = '<div style="text-align:center; padding:48px 20px; color:#475569;"><i data-lucide="ghost" class="" style="font-size:2rem; margin-bottom:12px; display:block; opacity:0.4;" style="width:1em;height:1em;display:inline-block;"></i><p style="font-style:italic;">Channel is empty</p></div>';
                 return;
             }
             list.innerHTML = members.map(m => {
@@ -1114,23 +1121,23 @@
                                 (m.isBot ? ' <span style="font-size:0.6rem; background:#6366f1; color:white; padding:2px 6px; border-radius:4px; font-weight:700; vertical-align:middle;">BOT</span>' : '') +
                             '</div>' +
                             '<div style="display:flex; gap:6px; margin-top:4px;">' +
-                                '<span data-badge="muted" class="badge badge-red" style="font-size:0.6rem; padding:1px 6px; display:' + (m.isMuted ? 'inline-flex' : 'none') + ';"><i class="fa-solid fa-microphone-slash"></i>&nbsp;Muted</span>' +
-                                '<span data-badge="deafened" class="badge badge-red" style="font-size:0.6rem; padding:1px 6px; display:' + (m.isDeaf ? 'inline-flex' : 'none') + ';"><i class="fa-solid fa-headphones-simple"></i>&nbsp;Deafened</span>' +
+                                '<span data-badge="muted" class="badge badge-red" style="font-size:0.6rem; padding:1px 6px; display:' + (m.isMuted ? 'inline-flex' : 'none') + ';"><i data-lucide="mic-off" class="" style="width:1em;height:1em;display:inline-block;"></i>&nbsp;Muted</span>' +
+                                '<span data-badge="deafened" class="badge badge-red" style="font-size:0.6rem; padding:1px 6px; display:' + (m.isDeaf ? 'inline-flex' : 'none') + ';"><i data-lucide="headphones" class="" style="width:1em;height:1em;display:inline-block;"></i>&nbsp;Deafened</span>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
                     '<div style="display:flex; gap:6px; flex-shrink:0;">' +
                         '<button class="btn btn-icon ' + mutedClass + '" data-action="mute" onclick="memberAction(\'' + m.id + '\', \'mute\')" title="' + (m.isMuted ? 'Unmute' : 'Mute') + '">' +
-                            '<i class="fa-solid fa-microphone' + (m.isMuted ? '-slash' : '') + '"></i>' +
+                            '<i data-lucide="circle" class="" style="width:1em;height:1em;display:inline-block;"></i>' +
                         '</button>' +
                         '<button class="btn btn-icon ' + deafClass + '" data-action="deafen" onclick="memberAction(\'' + m.id + '\', \'deafen\')" title="' + (m.isDeaf ? 'Undeafen' : 'Deafen') + '">' +
-                            '<i class="fa-solid fa-headphones' + (m.isDeaf ? '-simple' : '') + '"></i>' +
+                            '<i data-lucide="circle" class="" style="width:1em;height:1em;display:inline-block;"></i>' +
                         '</button>' +
                         '<button class="btn btn-icon btn-blue" onclick="openMoveModal(\'' + m.id + '\', \'' + escHtml(m.username).replace(/'/g, "\\'") + '\')" title="Move">' +
-                            '<i class="fa-solid fa-right-left"></i>' +
+                            '<i data-lucide="arrow-left-right" class="" style="width:1em;height:1em;display:inline-block;"></i>' +
                         '</button>' +
                         '<button class="btn btn-icon btn-red" onclick="memberAction(\'' + m.id + '\', \'kick\')" title="Kick from voice">' +
-                            '<i class="fa-solid fa-phone-slash"></i>' +
+                            '<i data-lucide="phone-off" class="" style="width:1em;height:1em;display:inline-block;"></i>' +
                         '</button>' +
                     '</div>' +
                 '</div>';
@@ -1151,14 +1158,14 @@
             const selectedText = select.options[select.selectedIndex]?.text || 'Unknown';
 
             if (!userId) {
-                document.getElementById('chat-messages').innerHTML = '<div style="display:flex; flex:1; align-items:center; justify-content:center; height:100%; color:#475569; font-style:italic; font-size:0.875rem; text-align:center; padding:20px;"><div><i class="fa-solid fa-comments" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.3;"></i>Select a user to view conversation</div></div>';
+                document.getElementById('chat-messages').innerHTML = '<div style="display:flex; flex:1; align-items:center; justify-content:center; height:100%; color:#475569; font-style:italic; font-size:0.875rem; text-align:center; padding:20px;"><div><i data-lucide="message-square" class="" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.3;" style="width:1em;height:1em;display:inline-block;"></i>Select a user to view conversation</div></div>';
                 input.disabled = true; btn.disabled = true;
                 headerName.textContent = 'No user selected';
                 return;
             }
             input.disabled = false; btn.disabled = false;
             headerName.textContent = selectedText;
-            document.getElementById('chat-messages').innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#64748b; gap:8px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
+            document.getElementById('chat-messages').innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#64748b; gap:8px;"><i data-lucide="loader-2" class="lucide-spin " style="width:1em;height:1em;display:inline-block;"></i> Loading...</div>';
             socket.emit('get_dm_history', { userId });
             // Hide DM badge
             document.getElementById('dm-badge').style.display = 'none';
@@ -1197,7 +1204,7 @@
         function renderMessages(messages) {
             const container = document.getElementById('chat-messages');
             if (!messages || messages.length === 0) {
-                container.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#475569; font-style:italic; font-size:0.875rem; text-align:center; padding:20px;"><div><i class="fa-solid fa-inbox" style="font-size:1.5rem; margin-bottom:8px; display:block; opacity:0.3;"></i>No messages yet</div></div>';
+                container.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#475569; font-style:italic; font-size:0.875rem; text-align:center; padding:20px;"><div><i data-lucide="inbox" class="" style="font-size:1.5rem; margin-bottom:8px; display:block; opacity:0.3;" style="width:1em;height:1em;display:inline-block;"></i>No messages yet</div></div>';
                 return;
             }
             container.innerHTML = '';
@@ -1302,7 +1309,7 @@
             const date  = new Date(e.time).toLocaleDateString([], { month:'short', day:'numeric' });
             return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;">' +
                 '<div style="width:28px;height:28px;border-radius:8px;background:' + color + '20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-                    '<i class="fa-solid ' + icon + '" style="font-size:0.7rem;color:' + color + ';"></i>' +
+                    '<i data-lucide="circle" class="" style="font-size:0.7rem;color:' + color + ';" style="width:1em;height:1em;display:inline-block;"></i>' +
                 '</div>' +
                 '<div style="flex:1;min-width:0;">' +
                     '<div style="font-size:0.8rem;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(e.message) + '</div>' +
@@ -1335,7 +1342,7 @@
                     const muteBadge = memberCard.querySelector('[data-badge="muted"]');
                     if (muteBtn) {
                         muteBtn.className = 'btn btn-icon ' + (newMuted ? 'btn-red' : 'btn-ghost');
-                        muteBtn.innerHTML = '<i class="fa-solid fa-microphone' + (newMuted ? '-slash' : '') + '"></i>';
+                        muteBtn.innerHTML = '<i data-lucide="circle" class="" style="width:1em;height:1em;display:inline-block;"></i>';
                         muteBtn.title = newMuted ? 'Unmute' : 'Mute';
                     }
                     if (muteBadge) muteBadge.style.display = newMuted ? 'inline-flex' : 'none';
@@ -1350,7 +1357,7 @@
                     const deafBadge = memberCard.querySelector('[data-badge="deafened"]');
                     if (deafBtn) {
                         deafBtn.className = 'btn btn-icon ' + (newDeaf ? 'btn-red' : 'btn-ghost');
-                        deafBtn.innerHTML = '<i class="fa-solid fa-headphones' + (newDeaf ? '-simple' : '') + '"></i>';
+                        deafBtn.innerHTML = '<i data-lucide="circle" class="" style="width:1em;height:1em;display:inline-block;"></i>';
                         deafBtn.title = newDeaf ? 'Undeafen' : 'Deafen';
                     }
                     if (deafBadge) deafBadge.style.display = newDeaf ? 'inline-flex' : 'none';
@@ -1500,6 +1507,148 @@
         window.addEventListener('resize', () => {
             document.getElementById('menu-toggle').style.display = window.innerWidth <= 768 ? 'block' : 'none';
         });
+    
+        // Refresh Lucide Icons
+        function refreshIcons() {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+        setInterval(refreshIcons, 1000); // Hacky but works for dynamic content
+        setTimeout(refreshIcons, 100);
+
+        // Custom Dropdown Wrapper
+        function createCustomDropdowns() {
+            document.querySelectorAll('select').forEach(select => {
+                if (select.dataset.customized) return;
+                select.dataset.customized = 'true';
+                select.style.display = 'none'; // Hide original
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-select-wrapper';
+                select.parentNode.insertBefore(wrapper, select);
+                wrapper.appendChild(select);
+                
+                const trigger = document.createElement('div');
+                trigger.className = 'custom-select-trigger';
+                
+                const selectedText = document.createElement('span');
+                selectedText.textContent = select.options[select.selectedIndex]?.text || '-- Select --';
+                
+                const chevron = document.createElement('i');
+                chevron.setAttribute('data-lucide', 'chevron-down');
+                chevron.style.width = '1em'; chevron.style.height = '1em';
+                
+                trigger.appendChild(selectedText);
+                trigger.appendChild(chevron);
+                
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'custom-select-options';
+                
+                function updateOptions() {
+                    optionsContainer.innerHTML = '';
+                    Array.from(select.options).forEach((opt, idx) => {
+                        const optDiv = document.createElement('div');
+                        optDiv.className = 'custom-select-option' + (select.selectedIndex === idx ? ' selected' : '');
+                        optDiv.innerHTML = opt.innerHTML; // Allow emoji/icons
+                        optDiv.onclick = (e) => {
+                            e.stopPropagation();
+                            select.selectedIndex = idx;
+                            selectedText.innerHTML = opt.innerHTML;
+                            select.dispatchEvent(new Event('change'));
+                            wrapper.classList.remove('open');
+                            updateOptions();
+                        };
+                        optionsContainer.appendChild(optDiv);
+                    });
+                }
+                
+                updateOptions();
+                
+                trigger.onclick = (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.custom-select-wrapper').forEach(w => {
+                        if (w !== wrapper) w.classList.remove('open');
+                    });
+                    wrapper.classList.toggle('open');
+                    updateOptions(); // Refresh in case original select options changed dynamically
+                };
+                
+                wrapper.appendChild(trigger);
+                wrapper.appendChild(optionsContainer);
+                
+                // Watch for external changes to select
+                select.addEventListener('change', () => {
+                    selectedText.innerHTML = select.options[select.selectedIndex]?.innerHTML || '-- Select --';
+                    updateOptions();
+                });
+                
+                // Watch for options added/removed dynamically
+                const observer = new MutationObserver(() => {
+                    selectedText.innerHTML = select.options[select.selectedIndex]?.innerHTML || '-- Select --';
+                    updateOptions();
+                });
+                observer.observe(select, { childList: true });
+            });
+            
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select-wrapper').forEach(w => w.classList.remove('open'));
+            });
+        }
+        setTimeout(createCustomDropdowns, 500);
+        
+        // DM List Rendering
+        let lastUserList = [];
+        function renderDMUsers(users) {
+            lastUserList = users;
+            const list = document.getElementById('dm-user-list');
+            if(!list) return;
+            if(!users || users.length === 0) {
+                list.innerHTML = '<div style="text-align:center; padding:20px; color:#949ba4; font-size:0.875rem;">No users found</div>';
+                return;
+            }
+            
+            let htmlStr = '';
+            users.forEach(u => {
+                const isActive = u.id === currentChatUser;
+                const statusColor = u.presence === 'online' ? '#23a559' : u.presence === 'idle' ? '#f0b232' : u.presence === 'dnd' ? '#da373c' : '#80848e';
+                htmlStr += `
+                    <div class="dm-user-item ${isActive ? 'active' : ''}" onclick="loadUserChat('${u.id}', '${u.username.replace(/'/g, "\\'")}', '${u.presence || 'offline'}')">
+                        <div style="position:relative;">
+                            <img src="${u.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width:32px; height:32px; border-radius:50%;">
+                            <div style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; background:#2b2d31; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                                <div style="width:8px; height:8px; background:${statusColor}; border-radius:50%;"></div>
+                            </div>
+                        </div>
+                        <div style="font-weight:600; font-size:0.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(u.username)}</div>
+                    </div>
+                `;
+            });
+            list.innerHTML = htmlStr;
+            refreshIcons();
+        }
+
+        // Update loadUserChat to take username and presence
+        function loadUserChat(userId, username, presence) {
+            currentChatUser = userId;
+            const input = document.getElementById('chat-input');
+            const btn = document.getElementById('btn-send-chat');
+            const headerName = document.getElementById('chat-header-name');
+            const headerStatus = document.getElementById('chat-header-status');
+            
+            input.disabled = false; btn.disabled = false;
+            headerName.textContent = username;
+            headerStatus.textContent = presence ? presence.toUpperCase() : 'OFFLINE';
+            input.placeholder = "Message @" + username;
+            
+            document.getElementById('chat-messages').innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#949ba4; gap:8px;"><i data-lucide="loader-2" class="lucide-spin"></i> Loading...</div>';
+            socket.emit('get_dm_history', { userId });
+            document.getElementById('dm-badge').style.display = 'none';
+            
+            // Re-render user list to update active state
+            renderDMUsers(lastUserList);
+        }
+
     </script>
 </body>
 </html>
