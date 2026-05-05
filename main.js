@@ -104,7 +104,8 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // ================= SESSION & SECURITY MIDDLEWARE =================
-app.use(session({
+// Satu instance session middleware yang di-share ke Express dan Socket.IO
+const sessionMiddleware = session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
@@ -112,8 +113,9 @@ app.use(session({
         httpOnly: true,
         maxAge: 8 * 60 * 60 * 1000 // 8 jam
     }
-}));
+});
 
+app.use(sessionMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -346,16 +348,11 @@ function broadcastUpdate() {
 }
 
 // ================= SOCKET.IO AUTH =================
+// Gunakan sessionMiddleware yang sama dengan Express agar session terbaca
 io.use((socket, next) => {
-    const req = socket.request;
-    // Parse session dari cookie
-    session({
-        secret: SESSION_SECRET,
-        resave: false,
-        saveUninitialized: false,
-        cookie: { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }
-    })(req, req.res || {}, () => {
-        if (req.session?.authenticated) return next();
+    sessionMiddleware(socket.request, socket.request.res || {}, (err) => {
+        if (err) return next(err);
+        if (socket.request.session?.authenticated) return next();
         next(new Error('Unauthorized'));
     });
 });
