@@ -658,7 +658,7 @@
                                 <div style="display:flex; align-items:center; gap:4px; padding:0 8px;">
                                     <!-- Emoji button -->
                                     <div style="position:relative;">
-                                        <button id="emoji-btn" onclick="toggleEmojiPicker()" title="Emoji" style="background:none;border:none;color:#949ba4;cursor:pointer;padding:8px 6px;border-radius:4px;font-size:1.2rem;line-height:1;transition:color 0.15s;" onmouseover="this.style.color='#dbdee1'" onmouseout="this.style.color='#949ba4'">
+                                        <button id="emoji-btn" onclick="toggleEmojiPicker(event)" title="Emoji" style="background:none;border:none;color:#949ba4;cursor:pointer;padding:8px 6px;border-radius:4px;font-size:1.2rem;line-height:1;transition:color 0.15s;" onmouseover="this.style.color='#dbdee1'" onmouseout="this.style.color='#949ba4'">
                                             😊
                                         </button>
                                         <!-- Emoji Picker -->
@@ -1188,28 +1188,6 @@
         }
 
         // ===== DM CHAT =====
-        function loadUserChat(userId) {
-            currentChatUser = userId;
-            const input = document.getElementById('chat-input');
-            const btn = document.getElementById('btn-send-chat');
-            const headerName = document.getElementById('chat-header-name');
-            const select = document.getElementById('chat-user-select');
-            const selectedText = select.options[select.selectedIndex]?.text || 'Unknown';
-
-            if (!userId) {
-                document.getElementById('chat-messages').innerHTML = '<div style="display:flex; flex:1; align-items:center; justify-content:center; height:100%; color:#475569; font-style:italic; font-size:0.875rem; text-align:center; padding:20px;"><div><i data-lucide="message-square" class="" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.3;" style="width:1em;height:1em;display:inline-block;"></i>Select a user to view conversation</div></div>';
-                input.disabled = true; btn.disabled = true;
-                headerName.textContent = 'No user selected';
-                return;
-            }
-            input.disabled = false; btn.disabled = false;
-            headerName.textContent = selectedText;
-            document.getElementById('chat-messages').innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#64748b; gap:8px;"><i data-lucide="loader-2" class="lucide-spin " style="width:1em;height:1em;display:inline-block;"></i> Loading...</div>';
-            socket.emit('get_dm_history', { userId });
-            // Hide DM badge
-            document.getElementById('dm-badge').style.display = 'none';
-        }
-
         socket.on('dm_history', ({ userId, messages }) => {
             if (userId !== currentChatUser) return;
             renderMessages(messages);
@@ -1407,7 +1385,8 @@
             ).join('');
         }
 
-        function toggleEmojiPicker() {
+        function toggleEmojiPicker(e) {
+            if (e) e.stopPropagation();
             const picker = document.getElementById('emoji-picker');
             const isOpen = picker.style.display !== 'none';
             picker.style.display = isOpen ? 'none' : 'block';
