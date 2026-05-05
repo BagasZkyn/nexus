@@ -123,6 +123,7 @@ const client = new Client({
         GatewayIntentBits.Guilds, 
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildPresences,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.MessageContent
     ],
@@ -184,10 +185,20 @@ function getDashboardData() {
     }
 
     // Ambil semua user di server untuk dropdown DM (kecuali bot)
+    const presenceStatusMap = { online: 'online', idle: 'idle', dnd: 'dnd', invisible: 'offline', offline: 'offline' };
     const allServerUsers = guild.members.cache
         .filter(m => !m.user.bot)
-        .map(m => ({ id: m.id, username: m.user.username }))
-        .sort((a, b) => a.username.localeCompare(b.username));
+        .map(m => ({
+            id: m.id,
+            username: m.user.username,
+            avatar: m.user.displayAvatarURL({ dynamic: true, size: 64 }),
+            presence: presenceStatusMap[m.presence?.status] || 'offline'
+        }))
+        .sort((a, b) => {
+            // Sort: online first, then idle, dnd, offline
+            const order = { online: 0, idle: 1, dnd: 2, offline: 3 };
+            return (order[a.presence] ?? 3) - (order[b.presence] ?? 3) || a.username.localeCompare(b.username);
+        });
 
     return {
         stats: { ping: client.ws.ping, uptime: Math.floor(client.uptime / 60000), guilds: client.guilds.cache.size, users: client.users.cache.size },
@@ -431,17 +442,19 @@ io.on('connection', (socket) => {
         socket.emit('dm_history', { userId, messages: chats[userId] || [] });
     });
 
-    socket.on('send_dm', async ({ userId, message }) => {
+    socket.on('send_dm', async ({ userId, message, replyTo }) => {
         try {
             const user = await client.users.fetch(userId);
-            await user.send(message);
+            // Build message text — prepend reply quote if present
+            let sendText = message;
+            if (replyTo) sendText = `> ${replyTo.text}\n${message}`;
+            await user.send(sendText);
             addLog('message', `DM sent to ${user.username}: "${message.substring(0, 40)}${message.length > 40 ? '...' : ''}"`);
             const chats = loadChats();
             if (!chats[userId]) chats[userId] = [];
-            const msgObj = { sender: 'bot', text: message, time: Date.now() };
+            const msgObj = { sender: 'bot', text: message, time: Date.now(), replyTo: replyTo || null };
             chats[userId].push(msgObj);
             saveChats(chats);
-
             socket.emit('dm_history', { userId, messages: chats[userId] });
         } catch (error) {
             console.error("Gagal kirim DM:", error);
@@ -471,8 +484,11 @@ client.on('messageCreate', message => {
 });
 
 client.on('voiceStateUpdate', () => {
-    // Delay kecil agar Discord sempat update state sebelum kita baca
     setTimeout(broadcastUpdate, 500);
+});
+
+client.on('presenceUpdate', () => {
+    setTimeout(broadcastUpdate, 1000);
 });
 
 // ================= READY =================

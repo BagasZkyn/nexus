@@ -617,19 +617,34 @@
                     <!-- Chat window -->
                     <div style="background:#313338; display:flex; flex-direction:column; overflow:hidden; border-radius:4px; border:1px solid #1e1f22;">
                         <!-- Chat header -->
-                        <div style="padding:14px 18px; border-bottom:1px solid #1e1f22; display:flex; align-items:center; gap:10px; background:#2b2d31;">
-                            <div style="width:32px; height:32px; border-radius:50%; background:#1e1f22; display:flex; align-items:center; justify-content:center; color:#949ba4;">
-                                <i data-lucide="at-sign"></i>
+                        <div style="padding:12px 18px; border-bottom:1px solid #1e1f22; display:flex; align-items:center; gap:12px; background:#2b2d31;">
+                            <div style="position:relative; flex-shrink:0;">
+                                <img id="chat-header-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" style="width:36px;height:36px;border-radius:50%;display:block;">
+                                <div id="chat-header-presence-dot" style="position:absolute;bottom:-1px;right:-1px;width:13px;height:13px;background:#2b2d31;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                                    <div id="chat-header-presence-inner" style="width:9px;height:9px;background:#80848e;border-radius:50%;"></div>
+                                </div>
                             </div>
-                            <div>
+                            <div style="flex:1;min-width:0;">
                                 <div id="chat-header-name" style="font-size:0.95rem; font-weight:700; color:#dbdee1;">No user selected</div>
-                                <div id="chat-header-status" style="font-size:0.75rem; color:#949ba4;">Select a user from the list</div>
+                                <div id="chat-header-status" style="font-size:0.72rem; color:#949ba4; margin-top:1px;">Select a user from the list</div>
                             </div>
                         </div>
 
+                        <!-- Reply bar (hidden by default) -->
+                        <div id="reply-bar" style="display:none; padding:6px 16px; background:#2e3035; border-bottom:1px solid #1e1f22; align-items:center; gap:10px;">
+                            <div style="flex:1; min-width:0;">
+                                <span style="font-size:0.72rem; color:#949ba4;">Replying to </span>
+                                <span id="reply-to-name" style="font-size:0.72rem; color:#00a8fc; font-weight:600;"></span>
+                                <div id="reply-preview" style="font-size:0.75rem; color:#949ba4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:400px;"></div>
+                            </div>
+                            <button onclick="cancelReply()" style="background:none;border:none;color:#949ba4;cursor:pointer;padding:4px;border-radius:4px;" title="Cancel reply">
+                                <i data-lucide="x" style="width:14px;height:14px;"></i>
+                            </button>
+                        </div>
+
                         <!-- Messages -->
-                        <div id="chat-messages" style="flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
-                            <div style="display:flex; flex:1; align-items:center; justify-content:center; height:100%; color:#949ba4; font-size:0.95rem; text-align:center;">
+                        <div id="chat-messages" style="flex:1; padding:16px 16px 8px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
+                            <div data-placeholder style="display:flex; flex:1; align-items:center; justify-content:center; height:100%; color:#949ba4; font-size:0.95rem; text-align:center;">
                                 <div>
                                     <i data-lucide="message-square" style="width:48px; height:48px; margin-bottom:12px; opacity:0.3; display:block; margin:0 auto;"></i>
                                     Select a user to start chatting
@@ -638,11 +653,33 @@
                         </div>
 
                         <!-- Input bar -->
-                        <div style="padding:14px 16px; background:#2b2d31; display:flex; gap:10px; align-items:center;">
-                            <input type="text" id="chat-input" placeholder="Message @User" style="flex:1;" disabled>
-                            <button id="btn-send-chat" class="btn btn-purple btn-icon" onclick="sendChat()" disabled style="padding:10px;">
-                                <i data-lucide="send"></i>
-                            </button>
+                        <div style="padding:0 16px 16px;">
+                            <div style="background:#383a40; border-radius:8px; overflow:hidden;">
+                                <div style="display:flex; align-items:center; gap:4px; padding:0 8px;">
+                                    <!-- Emoji button -->
+                                    <div style="position:relative;">
+                                        <button id="emoji-btn" onclick="toggleEmojiPicker()" title="Emoji" style="background:none;border:none;color:#949ba4;cursor:pointer;padding:8px 6px;border-radius:4px;font-size:1.2rem;line-height:1;transition:color 0.15s;" onmouseover="this.style.color='#dbdee1'" onmouseout="this.style.color='#949ba4'">
+                                            😊
+                                        </button>
+                                        <!-- Emoji Picker -->
+                                        <div id="emoji-picker" style="display:none;position:absolute;bottom:44px;left:0;background:#2b2d31;border:1px solid #1e1f22;border-radius:8px;padding:10px;width:300px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:50;">
+                                            <div style="display:flex;gap:4px;margin-bottom:8px;border-bottom:1px solid #1e1f22;padding-bottom:8px;overflow-x:auto;">
+                                                <button onclick="setEmojiCategory('smileys')" id="ecat-smileys" class="emoji-cat-btn active" style="background:rgba(255,255,255,0.1);border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:0.9rem;white-space:nowrap;color:#dbdee1;">😀 Smileys</button>
+                                                <button onclick="setEmojiCategory('gestures')" id="ecat-gestures" class="emoji-cat-btn" style="background:none;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:0.9rem;white-space:nowrap;color:#949ba4;">👋 Gestures</button>
+                                                <button onclick="setEmojiCategory('hearts')" id="ecat-hearts" class="emoji-cat-btn" style="background:none;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:0.9rem;white-space:nowrap;color:#949ba4;">❤️ Hearts</button>
+                                                <button onclick="setEmojiCategory('objects')" id="ecat-objects" class="emoji-cat-btn" style="background:none;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:0.9rem;white-space:nowrap;color:#949ba4;">🎮 Objects</button>
+                                                <button onclick="setEmojiCategory('symbols')" id="ecat-symbols" class="emoji-cat-btn" style="background:none;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:0.9rem;white-space:nowrap;color:#949ba4;">🔥 Symbols</button>
+                                            </div>
+                                            <div id="emoji-grid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:180px;overflow-y:auto;"></div>
+                                        </div>
+                                    </div>
+                                    <input type="text" id="chat-input" placeholder="Message @User" style="flex:1;background:transparent;border:none;padding:11px 4px;font-size:0.9375rem;color:#dbdee1;outline:none;" disabled>
+                                    <!-- Send button -->
+                                    <button id="btn-send-chat" onclick="sendChat()" disabled title="Send" style="background:none;border:none;color:#949ba4;cursor:pointer;padding:8px 6px;border-radius:4px;transition:color 0.15s;" onmouseover="this.style.color='#5865f2'" onmouseout="this.style.color='#949ba4'">
+                                        <i data-lucide="send" style="width:18px;height:18px;"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -940,6 +977,8 @@
         let cachedVoiceChannels = [];
         let currentMoveTarget = null;
         let currentChatUser = null;
+        let currentChatUserName = '';
+        let currentChatUserAvatar = '';
         let userDropdownPopulated = false;
         let dashboardReceived = false;
         let currentTab = 'dashboard';
@@ -1193,8 +1232,11 @@
             const input = document.getElementById('chat-input');
             const msg = input.value.trim();
             if (!msg || !currentChatUser) return;
-            socket.emit('send_dm', { userId: currentChatUser, message: msg });
+            const payload = { userId: currentChatUser, message: msg };
+            if (replyState) payload.replyTo = replyState;
+            socket.emit('send_dm', payload);
             input.value = '';
+            cancelReply();
         }
 
         document.getElementById('chat-input').addEventListener('keypress', function(e) {
@@ -1204,34 +1246,191 @@
         function renderMessages(messages) {
             const container = document.getElementById('chat-messages');
             if (!messages || messages.length === 0) {
-                container.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#475569; font-style:italic; font-size:0.875rem; text-align:center; padding:20px;"><div><i data-lucide="inbox" class="" style="font-size:1.5rem; margin-bottom:8px; display:block; opacity:0.3;" style="width:1em;height:1em;display:inline-block;"></i>No messages yet</div></div>';
+                container.innerHTML = '<div data-placeholder style="display:flex;align-items:center;justify-content:center;height:100%;color:#949ba4;font-style:italic;font-size:0.875rem;text-align:center;padding:20px;"><div><i data-lucide="inbox" style="width:32px;height:32px;margin:0 auto 8px;display:block;opacity:0.3;"></i>No messages yet</div></div>';
+                refreshIcons();
                 return;
             }
             container.innerHTML = '';
-            messages.forEach(m => appendMessage(m, false));
+            let prevSender = null, prevTime = null;
+            messages.forEach((m, i) => {
+                const currTime = new Date(m.time);
+                const sameGroup = prevSender === m.sender && prevTime && (currTime - prevTime) < 5 * 60 * 1000;
+                appendMessage(m, false, sameGroup);
+                prevSender = m.sender;
+                prevTime = currTime;
+            });
             container.scrollTop = container.scrollHeight;
         }
 
-        function appendMessage(m, scrollToBottom = true) {
+        // replyState holds { sender, text, msgId }
+        let replyState = null;
+
+        function appendMessage(m, scrollToBottom = true, grouped = false) {
             const container = document.getElementById('chat-messages');
-            // Remove placeholder if present
             const placeholder = container.querySelector('[data-placeholder]');
             if (placeholder) placeholder.remove();
 
-            const wrapper = document.createElement('div');
-            wrapper.style.display = 'flex';
-            wrapper.style.flexDirection = 'column';
-            wrapper.style.alignItems = m.sender === 'bot' ? 'flex-end' : 'flex-start';
-
+            const isBot = m.sender === 'bot';
             const timeStr = new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-bubble ' + (m.sender === 'bot' ? 'bubble-bot' : 'bubble-user');
-            bubble.innerHTML = '<div>' + escHtml(m.text) + '</div><div style="font-size:0.65rem; margin-top:4px; opacity:0.6; text-align:' + (m.sender === 'bot' ? 'right' : 'left') + ';">' + timeStr + '</div>';
+            const fullTime = new Date(m.time).toLocaleString();
+            const msgId = 'msg-' + m.time + '-' + Math.random().toString(36).slice(2,6);
 
-            wrapper.appendChild(bubble);
+            // Avatar src
+            const avatarSrc = isBot
+                ? (document.getElementById('settings-bot-avatar')?.src || 'https://cdn.discordapp.com/embed/avatars/0.png')
+                : (currentChatUserAvatar || 'https://cdn.discordapp.com/embed/avatars/0.png');
+            const displayName = isBot ? (document.getElementById('settings-bot-username')?.textContent || 'Bot') : currentChatUserName;
+
+            const wrapper = document.createElement('div');
+            wrapper.id = msgId;
+            wrapper.className = 'msg-wrapper';
+            wrapper.style.cssText = 'display:flex;align-items:flex-start;gap:16px;padding:2px 16px;border-radius:4px;position:relative;';
+            wrapper.onmouseenter = function() {
+                this.style.background = 'rgba(0,0,0,0.06)';
+                const actions = this.querySelector('.msg-actions');
+                if (actions) actions.style.display = 'flex';
+            };
+            wrapper.onmouseleave = function() {
+                this.style.background = 'transparent';
+                const actions = this.querySelector('.msg-actions');
+                if (actions) actions.style.display = 'none';
+            };
+
+            // Reply quote
+            let replyHTML = '';
+            if (m.replyTo) {
+                replyHTML = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:0.78rem;color:#949ba4;cursor:pointer;" onclick="scrollToMsg('${m.replyTo.msgId}')">
+                    <div style="width:2px;height:100%;background:#949ba4;border-radius:1px;align-self:stretch;min-height:14px;"></div>
+                    <img src="${escHtml(m.replyTo.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png')}" style="width:16px;height:16px;border-radius:50%;">
+                    <span style="color:#dbdee1;font-weight:600;">${escHtml(m.replyTo.name)}</span>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;">${escHtml(m.replyTo.text)}</span>
+                </div>`;
+            }
+
+            if (grouped) {
+                // Compact grouped message — no avatar, just timestamp on hover
+                wrapper.style.paddingLeft = '72px';
+                wrapper.innerHTML = `
+                    <div style="flex:1;min-width:0;">
+                        ${replyHTML}
+                        <div style="display:flex;align-items:baseline;gap:8px;">
+                            <span class="msg-hover-time" style="display:none;font-size:0.65rem;color:#949ba4;width:40px;text-align:right;flex-shrink:0;">${timeStr}</span>
+                            <span style="font-size:0.9375rem;color:#dcddde;line-height:1.375;word-break:break-word;">${escHtml(m.text)}</span>
+                        </div>
+                    </div>
+                    <div class="msg-actions" style="display:none;position:absolute;right:16px;top:-14px;background:#2b2d31;border:1px solid #1e1f22;border-radius:6px;gap:2px;padding:3px;">
+                        <button onclick="startReply('${msgId}','${escHtml(displayName).replace(/'/g,"\\'")}','${escHtml(m.text).replace(/'/g,"\\'")}','${escHtml(avatarSrc).replace(/'/g,"\\'")}','${msgId}')" title="Reply" style="background:none;border:none;color:#949ba4;cursor:pointer;padding:4px 6px;border-radius:4px;font-size:0.8rem;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">↩</button>
+                    </div>`;
+                wrapper.onmouseenter = function() {
+                    this.style.background = 'rgba(0,0,0,0.06)';
+                    const t = this.querySelector('.msg-hover-time');
+                    if (t) t.style.display = 'block';
+                    const a = this.querySelector('.msg-actions');
+                    if (a) a.style.display = 'flex';
+                };
+                wrapper.onmouseleave = function() {
+                    this.style.background = 'transparent';
+                    const t = this.querySelector('.msg-hover-time');
+                    if (t) t.style.display = 'none';
+                    const a = this.querySelector('.msg-actions');
+                    if (a) a.style.display = 'none';
+                };
+            } else {
+                // Full message with avatar
+                wrapper.style.paddingTop = '8px';
+                wrapper.innerHTML = `
+                    <img src="${escHtml(avatarSrc)}" style="width:40px;height:40px;border-radius:50%;flex-shrink:0;margin-top:2px;">
+                    <div style="flex:1;min-width:0;">
+                        ${replyHTML}
+                        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px;">
+                            <span style="font-size:0.9375rem;font-weight:600;color:${isBot ? '#5865f2' : '#dbdee1'};">${escHtml(displayName)}</span>
+                            <span title="${fullTime}" style="font-size:0.65rem;color:#949ba4;">${timeStr}</span>
+                        </div>
+                        <div style="font-size:0.9375rem;color:#dcddde;line-height:1.375;word-break:break-word;">${escHtml(m.text)}</div>
+                    </div>
+                    <div class="msg-actions" style="display:none;position:absolute;right:16px;top:4px;background:#2b2d31;border:1px solid #1e1f22;border-radius:6px;gap:2px;padding:3px;">
+                        <button onclick="startReply('${msgId}','${escHtml(displayName).replace(/'/g,"\\'")}','${escHtml(m.text).replace(/'/g,"\\'")}','${escHtml(avatarSrc).replace(/'/g,"\\'")}','${msgId}')" title="Reply" style="background:none;border:none;color:#949ba4;cursor:pointer;padding:4px 6px;border-radius:4px;font-size:0.8rem;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">↩ Reply</button>
+                    </div>`;
+            }
+
             container.appendChild(wrapper);
             if (scrollToBottom) container.scrollTop = container.scrollHeight;
+            refreshIcons();
         }
+
+        // ===== REPLY SYSTEM =====
+        function startReply(msgId, name, text, avatar, targetId) {
+            replyState = { msgId: targetId, name, text, avatar };
+            const bar = document.getElementById('reply-bar');
+            bar.style.display = 'flex';
+            document.getElementById('reply-to-name').textContent = name;
+            document.getElementById('reply-preview').textContent = text.substring(0, 80) + (text.length > 80 ? '...' : '');
+            document.getElementById('chat-input').focus();
+            refreshIcons();
+        }
+
+        function cancelReply() {
+            replyState = null;
+            document.getElementById('reply-bar').style.display = 'none';
+        }
+
+        function scrollToMsg(msgId) {
+            const el = document.getElementById(msgId);
+            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'rgba(88,101,242,0.15)'; setTimeout(() => el.style.background = 'transparent', 1500); }
+        }
+
+        // ===== EMOJI PICKER =====
+        const emojiCategories = {
+            smileys: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐'],
+            gestures: ['👋','🤚','🖐','✋','🖖','👌','🤌','🤏','✌','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🫀','🫁','🧠','🦷','🦴','👀','👁','👅','👄'],
+            hearts: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉','☸️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳'],
+            objects: ['🎮','🕹','🎲','🎯','🎳','🎰','🎪','🎭','🎨','🖼','🎬','🎤','🎧','🎼','🎵','🎶','🎷','🎸','🎹','🎺','🎻','🥁','🪘','📱','💻','🖥','🖨','⌨️','🖱','🖲','💾','💿','📀','📷','📸','📹','🎥','📽','🎞','📞','☎️','📟','📠','📺','📻','🧭','⏱','⏲','⏰','🕰','⌚','⏳','⌛'],
+            symbols: ['🔥','💥','✨','🌟','⭐','🌈','☀️','🌤','⛅','🌥','☁️','🌦','🌧','⛈','🌩','🌨','❄️','☃️','⛄','🌬','💨','🌪','🌫','🌊','💧','💦','☔','⚡','🌀','🌈','🎆','🎇','🧨','✅','❎','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🔶','🔷','🔸','🔹','🔺','🔻','💠','🔘','🔲','🔳']
+        };
+        let currentEmojiCat = 'smileys';
+
+        function setEmojiCategory(cat) {
+            currentEmojiCat = cat;
+            document.querySelectorAll('.emoji-cat-btn').forEach(b => {
+                b.style.background = 'none'; b.style.color = '#949ba4';
+            });
+            const active = document.getElementById('ecat-' + cat);
+            if (active) { active.style.background = 'rgba(255,255,255,0.1)'; active.style.color = '#dbdee1'; }
+            renderEmojiGrid();
+        }
+
+        function renderEmojiGrid() {
+            const grid = document.getElementById('emoji-grid');
+            if (!grid) return;
+            grid.innerHTML = (emojiCategories[currentEmojiCat] || []).map(e =>
+                `<button onclick="insertEmoji('${e}')" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:4px;border-radius:4px;line-height:1;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">${e}</button>`
+            ).join('');
+        }
+
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emoji-picker');
+            const isOpen = picker.style.display !== 'none';
+            picker.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen) renderEmojiGrid();
+        }
+
+        function insertEmoji(emoji) {
+            const input = document.getElementById('chat-input');
+            const pos = input.selectionStart;
+            const val = input.value;
+            input.value = val.slice(0, pos) + emoji + val.slice(pos);
+            input.selectionStart = input.selectionEnd = pos + emoji.length;
+            input.focus();
+        }
+
+        // Close emoji picker on outside click
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('emoji-picker');
+            const btn = document.getElementById('emoji-btn');
+            if (picker && btn && !picker.contains(e.target) && !btn.contains(e.target)) {
+                picker.style.display = 'none';
+            }
+        });
 
         // ===== BOT & MEMBER ACTIONS =====
         // ===== BULK ACTIONS =====
@@ -1631,20 +1830,37 @@
         // Update loadUserChat to take username and presence
         function loadUserChat(userId, username, presence) {
             currentChatUser = userId;
+            currentChatUserName = username;
+            // Find avatar from lastUserList
+            const userObj = lastUserList.find(u => u.id === userId);
+            currentChatUserAvatar = userObj ? userObj.avatar : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
             const input = document.getElementById('chat-input');
             const btn = document.getElementById('btn-send-chat');
             const headerName = document.getElementById('chat-header-name');
             const headerStatus = document.getElementById('chat-header-status');
-            
+            const headerAvatar = document.getElementById('chat-header-avatar');
+            const presenceInner = document.getElementById('chat-header-presence-inner');
+
             input.disabled = false; btn.disabled = false;
             headerName.textContent = username;
-            headerStatus.textContent = presence ? presence.toUpperCase() : 'OFFLINE';
-            input.placeholder = "Message @" + username;
-            
-            document.getElementById('chat-messages').innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#949ba4; gap:8px;"><i data-lucide="loader-2" class="lucide-spin"></i> Loading...</div>';
+            input.placeholder = 'Message @' + username;
+
+            // Update header avatar
+            if (headerAvatar) headerAvatar.src = currentChatUserAvatar;
+
+            // Update presence dot + status text
+            const presenceColors = { online: '#23a559', idle: '#f0b232', dnd: '#da373c', offline: '#80848e' };
+            const presenceLabels = { online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', offline: 'Offline' };
+            if (presenceInner) presenceInner.style.background = presenceColors[presence] || '#80848e';
+            if (headerStatus) headerStatus.textContent = presenceLabels[presence] || 'Offline';
+
+            cancelReply();
+            document.getElementById('chat-messages').innerHTML = '<div data-placeholder style="display:flex;align-items:center;justify-content:center;height:100%;color:#949ba4;gap:8px;"><i data-lucide="loader-2" class="lucide-spin"></i> Loading...</div>';
+            refreshIcons();
             socket.emit('get_dm_history', { userId });
             document.getElementById('dm-badge').style.display = 'none';
-            
+
             // Re-render user list to update active state
             renderDMUsers(lastUserList);
         }
