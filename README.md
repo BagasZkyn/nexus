@@ -1,6 +1,6 @@
 # 🎮 Discord Bot Control Panel
 
-A real-time web dashboard to control your Discord bot — manage voice channels, moderate members, send DMs, broadcast messages, and monitor activity logs, all from a sleek browser interface.
+A real-time web dashboard to control your Discord bot — manage voice channels, moderate members, send DMs, broadcast messages, and monitor activity logs, all from a Discord-inspired browser interface.
 
 ![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?style=flat-square&logo=node.js&logoColor=white)
 ![Discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?style=flat-square&logo=discord&logoColor=white)
@@ -18,15 +18,18 @@ A real-time web dashboard to control your Discord bot — manage voice channels,
 - Real-time updates via Socket.IO (10s interval + event-driven)
 
 ### 🎙️ Voice Control
-- View all members currently in a voice channel with avatars
+- View all members currently in a voice channel with avatars and status badges
 - **Per-member actions:** Mute, Deafen, Move to channel, Kick from voice
 - **Bulk actions:** Mute All, Unmute All, Deafen All, Undeafen All, Kick All
 - Optimistic UI — buttons update instantly without waiting for server response
 - Bot controls: Connect, Reconnect, Move Bot, Disconnect
 
 ### 💬 DM Chat
+- Discord-style chat UI with grouped messages and avatars per sender
 - Send and receive Direct Messages to/from any server member
-- Full chat history with bubble UI (bot = purple right, user = slate left)
+- **Reply system** — hover a message and click Reply, with quoted preview
+- **Emoji picker** — 5 categories (Smileys, Gestures, Hearts, Objects, Symbols)
+- User presence status (Online / Idle / DnD / Offline) shown in sidebar and chat header
 - Real-time incoming message notifications with NEW badge
 - Persistent chat history saved to local JSON database
 
@@ -35,9 +38,16 @@ A real-time web dashboard to control your Discord bot — manage voice channels,
 - **Broadcast DM** — send a DM to all members currently in voice at once
 
 ### 📋 Activity Log
-- Real-time log of all actions (voice events, moderation, messages, system)
+- Real-time log of all actions (voice, moderation, messages, settings, system)
 - Color-coded by category with timestamps
 - Stores last 100 entries, live badge notification on new events
+
+### ⚙️ Settings
+- **Bot Identity** — change bot username and avatar (via image URL) live
+- **Bot Presence** — set online status (Online/Idle/DnD/Invisible) and activity (Playing/Watching/Listening/Competing)
+- **Voice Settings** — configure default voice channel and auto-join on startup toggle
+- **Panel Settings** — customize the browser tab title
+- **Danger Zone** — clear all DM chat history from the server
 
 ---
 
@@ -51,6 +61,10 @@ A real-time web dashboard to control your Discord bot — manage voice channels,
   - `Manage Roles`, `Mute Members`, `Deafen Members`, `Move Members`
   - `Send Messages`, `Read Message History`
   - `Connect`, `Speak` (for voice)
+- Enable the following **Privileged Gateway Intents** in the Developer Portal:
+  - `Server Members Intent`
+  - `Presence Intent`
+  - `Message Content Intent`
 
 ### Installation
 
@@ -94,6 +108,8 @@ PANEL_PORT=3000
 | `CHANNEL_ID` | Default voice channel the bot joins on startup |
 | `PANEL_PORT` | Port for the web panel (default: `3000`) |
 
+> Additional runtime settings (presence, default channel, panel title, etc.) are saved to `settings.json` automatically via the Settings tab — no restart needed.
+
 ### How to get IDs
 
 Enable **Developer Mode** in Discord settings (`Settings → Advanced → Developer Mode`), then right-click any server/channel and select **Copy ID**.
@@ -106,8 +122,8 @@ Enable **Developer Mode** in Discord settings (`Settings → Advanced → Develo
 |---|---|
 | Bot | [discord.js v14](https://discord.js.org/) + [@discordjs/voice](https://github.com/discordjs/discord.js/tree/main/packages/voice) |
 | Backend | [Express.js](https://expressjs.com/) + [Socket.IO](https://socket.io/) |
-| Frontend | HTML + [Tailwind CSS](https://tailwindcss.com/) + [Font Awesome 6](https://fontawesome.com/) |
-| Storage | Local JSON file (`chats.json`) |
+| Frontend | HTML + [Tailwind CSS](https://tailwindcss.com/) + [Lucide Icons](https://lucide.dev/) |
+| Storage | Local JSON files (`chats.json`, `settings.json`) |
 | Config | [dotenv](https://github.com/motdotla/dotenv) |
 
 ---
@@ -123,7 +139,8 @@ discord-bot-panel/
 ├── .env                 # Environment variables (not committed)
 ├── .env.example         # Template for environment variables
 ├── .gitignore
-└── chats.json           # DM chat history (auto-generated, not committed)
+├── chats.json           # DM chat history (auto-generated, not committed)
+└── settings.json        # Runtime settings (auto-generated, not committed)
 ```
 
 ---
@@ -135,6 +152,7 @@ discord-bot-panel/
 | `GET` | `/` | Serves the web panel |
 | `GET` | `/api/dashboard` | Returns current dashboard data as JSON |
 | `GET` | `/api/logs` | Returns activity log history as JSON |
+| `GET` | `/api/settings` | Returns current settings as JSON |
 
 ### Socket.IO Events
 
@@ -147,26 +165,36 @@ discord-bot-panel/
 | `bulk_action` | `{ action }` | `mute_all`, `unmute_all`, `deafen_all`, `undeafen_all`, `kick_all` |
 | `broadcast_message` | `{ message }` | DM all voice members |
 | `announce` | `{ channelId, message }` | Send to text channel |
-| `send_dm` | `{ userId, message }` | Send DM to specific user |
+| `send_dm` | `{ userId, message, replyTo? }` | Send DM (with optional reply context) |
 | `get_dm_history` | `{ userId }` | Fetch DM history |
 | `get_logs` | — | Fetch activity log history |
+| `get_settings` | — | Fetch current settings + bot info |
+| `save_settings` | `{ ...settingsFields }` | Save and apply settings |
+| `update_bot_username` | `{ username }` | Change bot username |
+| `update_bot_avatar` | `{ imageUrl }` | Change bot avatar |
+| `clear_chat_history` | — | Delete all stored DM history |
 
 **Server → Client**
 
 | Event | Description |
 |---|---|
-| `dashboard_update` | Full dashboard data refresh |
+| `dashboard_update` | Full dashboard data refresh (includes presence, botInfo, settings) |
 | `activity_log` | New log entry |
 | `dm_received` | Incoming DM from a user |
 | `dm_history` | DM history for a user |
-| `broadcast_result` | Result of broadcast DM |
+| `broadcast_result` | Result of broadcast DM `{ sent, failed }` |
 | `announce_success` / `announce_error` | Announce result |
+| `settings_data` | Settings + bot info response |
+| `settings_saved` | Confirmation after save |
+| `settings_result` | Result of username/avatar/clear operations |
+| `bot_status` | Bot connection state (sent before bot is ready) |
 
 ---
 
 ## 🔒 Security Notes
 
 - **Never commit your `.env` file** — it's excluded via `.gitignore`
+- `settings.json` and `chats.json` are also excluded from git
 - The panel has no authentication by default — only run it on a trusted local network or behind a reverse proxy with auth (e.g., Nginx + basic auth)
 - Bot token should be kept secret and rotated if exposed
 
