@@ -1,0 +1,16 @@
+{
+  "name": "discord-bot-panel",
+  "version": "1.0.0",
+  "description": "Discord Bot Control Panel",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.19.2",
+    "discord.js": "^14.16.3",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
