@@ -6,6 +6,7 @@ A real-time web dashboard to control your Discord bot — manage voice channels,
 ![Discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?style=flat-square&logo=discord&logoColor=white)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?style=flat-square&logo=socket.io&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?style=flat-square&logo=express&logoColor=white)
+![Auth](https://img.shields.io/badge/auth-session%20%2B%20API%20key-orange?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
 ---
@@ -48,6 +49,15 @@ A real-time web dashboard to control your Discord bot — manage voice channels,
 - **Voice Settings** — configure default voice channel and auto-join on startup toggle
 - **Panel Settings** — customize the browser tab title
 - **Danger Zone** — clear all DM chat history from the server
+
+### 🔒 Security
+- Login page with username + password authentication
+- Session-based auth (cookie, 8-hour expiry) protecting the entire panel
+- Socket.IO connections also require a valid session — unauthorized connections are rejected
+- API key authentication for all REST endpoints via `x-api-key` header
+- Rate limiting on login endpoint (max 10 attempts/IP/minute)
+- All failed login attempts logged to Activity Log
+- Logout button in the top bar
 
 ---
 
@@ -98,6 +108,12 @@ CLIENT_ID=your_application_id_here
 GUILD_ID=your_server_id_here
 CHANNEL_ID=default_voice_channel_id_here
 PANEL_PORT=3000
+
+# Security
+PANEL_USERNAME=admin
+PANEL_PASSWORD=changeme123
+API_KEY=your-secret-api-key-here
+SESSION_SECRET=your-random-session-secret-here
 ```
 
 | Variable | Description |
@@ -107,6 +123,10 @@ PANEL_PORT=3000
 | `GUILD_ID` | The server (guild) ID the bot will manage |
 | `CHANNEL_ID` | Default voice channel the bot joins on startup |
 | `PANEL_PORT` | Port for the web panel (default: `3000`) |
+| `PANEL_USERNAME` | Login username for the web panel |
+| `PANEL_PASSWORD` | Login password for the web panel |
+| `API_KEY` | Secret key for REST API access (sent as `x-api-key` header) |
+| `SESSION_SECRET` | Random secret used to sign session cookies |
 
 > Additional runtime settings (presence, default channel, panel title, etc.) are saved to `settings.json` automatically via the Settings tab — no restart needed.
 
@@ -122,6 +142,7 @@ Enable **Developer Mode** in Discord settings (`Settings → Advanced → Develo
 |---|---|
 | Bot | [discord.js v14](https://discord.js.org/) + [@discordjs/voice](https://github.com/discordjs/discord.js/tree/main/packages/voice) |
 | Backend | [Express.js](https://expressjs.com/) + [Socket.IO](https://socket.io/) |
+| Auth | [express-session](https://github.com/expressjs/session) + API key middleware |
 | Frontend | HTML + [Tailwind CSS](https://tailwindcss.com/) + [Lucide Icons](https://lucide.dev/) |
 | Storage | Local JSON files (`chats.json`, `settings.json`) |
 | Config | [dotenv](https://github.com/motdotla/dotenv) |
@@ -132,7 +153,7 @@ Enable **Developer Mode** in Discord settings (`Settings → Advanced → Develo
 
 ```
 discord-bot-panel/
-├── main.js              # Bot logic, Express server, Socket.IO handlers
+├── main.js              # Bot logic, Express server, Socket.IO handlers, auth middleware
 ├── public/
 │   └── index.html       # Frontend dashboard (single-page app)
 ├── package.json
@@ -149,10 +170,13 @@ discord-bot-panel/
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/` | Serves the web panel |
-| `GET` | `/api/dashboard` | Returns current dashboard data as JSON |
-| `GET` | `/api/logs` | Returns activity log history as JSON |
-| `GET` | `/api/settings` | Returns current settings as JSON |
+| `GET` | `/login` | Login page |
+| `POST` | `/login` | Submit credentials |
+| `GET` | `/logout` | Destroy session and redirect to login |
+| `GET` | `/` | Serves the web panel (requires auth) |
+| `GET` | `/api/dashboard` | Returns current dashboard data as JSON (requires auth + API key) |
+| `GET` | `/api/logs` | Returns activity log history as JSON (requires auth + API key) |
+| `GET` | `/api/settings` | Returns current settings as JSON (requires auth + API key) |
 
 ### Socket.IO Events
 
@@ -195,8 +219,12 @@ discord-bot-panel/
 
 - **Never commit your `.env` file** — it's excluded via `.gitignore`
 - `settings.json` and `chats.json` are also excluded from git
-- The panel has no authentication by default — only run it on a trusted local network or behind a reverse proxy with auth (e.g., Nginx + basic auth)
-- Bot token should be kept secret and rotated if exposed
+- Change `PANEL_PASSWORD`, `API_KEY`, and `SESSION_SECRET` to strong random values before deploying
+- The panel is protected by session-based login — unauthenticated requests are redirected to `/login`
+- Socket.IO connections require a valid session — unauthorized connections are rejected immediately
+- API endpoints require both a valid session and the `x-api-key` header (if `API_KEY` is set)
+- Rate limiting on `/login` prevents brute-force attacks (10 attempts/IP/minute)
+- For production, run behind a reverse proxy (e.g., Nginx) with HTTPS to protect session cookies in transit
 
 ---
 
