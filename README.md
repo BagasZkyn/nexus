@@ -30,6 +30,7 @@
 | Section | Jump To |
 |---|---|
 | ✨ Features | [Features](#-features) |
+| 🤖 Slash Commands | [Slash Commands](#-slash-commands) |
 | 🚀 Getting Started | [Quick Start](#-getting-started) |
 | ⚙️ Configuration | [Config Reference](#️-configuration) |
 | 🛠️ Tech Stack | [Stack](#️-tech-stack) |
@@ -90,6 +91,31 @@
 
 ---
 
+## 🤖 Slash Commands
+
+Nexus includes 12 built-in slash commands powered by the [QasimDev API](https://api.qasimdev.dpdns.org/) for downloading media from popular platforms. Results are returned as Discord embeds with direct download links and thumbnails.
+
+> Requires `QASIMDEV_API_KEY` in your `.env`. Get a free key at [api.qasimdev.dpdns.org](https://api.qasimdev.dpdns.org/).
+
+| Command | Description |
+|---|---|
+| `/tiktok <url>` | Download TikTok video (no watermark), watermark version, audio, or photo slides |
+| `/instagram <url>` | Download Instagram photo, video, or reel |
+| `/facebook <url>` | Download Facebook video |
+| `/twitter <url>` | Download Twitter/X media |
+| `/youtube <url> [format]` | Download YouTube video (`360`, `480`, `720`, `1080`) or audio (`mp3`) |
+| `/spotify <url>` | Download Spotify track as MP3 |
+| `/threads <url>` | Download Threads video |
+| `/pinterest <url>` | Download Pinterest video |
+| `/capcut <url>` | Download CapCut template or video |
+| `/mediafire <url>` | Download file from MediaFire |
+| `/terabox <url>` | Download file from Terabox |
+| `/soundcloud <url>` | Download SoundCloud track |
+
+All commands use `defer` + `editReply` so Discord won't time out on slow downloads. Errors are returned as a clean red embed with the failure reason.
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -119,8 +145,8 @@ Before you begin, make sure you have:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/BagasZkyn/discord-bot-panel.git
-cd discord-bot-panel
+git clone https://github.com/BagasZkyn/nexus.git
+cd nexus
 
 # 2. Install dependencies
 npm install
@@ -153,6 +179,9 @@ PANEL_USERNAME=admin
 PANEL_PASSWORD=changeme123
 API_KEY=your-secret-api-key-here
 SESSION_SECRET=your-random-session-secret-here
+
+# QasimDev API (for slash commands)
+QASIMDEV_API_KEY=your-qasimdev-api-key-here
 ```
 
 | Variable | Description |
@@ -166,6 +195,7 @@ SESSION_SECRET=your-random-session-secret-here
 | `PANEL_PASSWORD` | Login password for the web panel |
 | `API_KEY` | Secret key for REST API access (sent as `x-api-key` header) |
 | `SESSION_SECRET` | Random secret used to sign session cookies |
+| `QASIMDEV_API_KEY` | Free API key for slash command downloaders — get one at [api.qasimdev.dpdns.org](https://api.qasimdev.dpdns.org/) |
 
 > Additional runtime settings (presence, default channel, panel title, etc.) are saved to `settings.json` automatically via the Settings tab — no restart needed.
 
