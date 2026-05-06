@@ -35,6 +35,7 @@ const PANEL_USERNAME = process.env.PANEL_USERNAME || 'admin';
 const PANEL_PASSWORD = process.env.PANEL_PASSWORD || 'changeme123';
 const API_KEY        = process.env.API_KEY || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-change-me';
+const QASIMDEV_KEY   = process.env.QASIMDEV_API_KEY || '';
 
 // ================= DATABASE SEDERHANA UNTUK CHAT =================
 const DB_FILE = path.join(__dirname, 'chats.json');
@@ -638,11 +639,72 @@ client.once('ready', async () => {
         console.error('❌ Guild tidak ditemukan! Cek GUILD_ID di .env');
     }
     
-    // Slash commands (Tetap sama)
+    // Slash commands
     const commands = [
-        new SlashCommandBuilder().setName('tiktokdl').setDescription('Download video TikTok')
-            .addStringOption(option => option.setName('url').setDescription('Link TikTok').setRequired(true)).toJSON()
-    ];
+        // ── Downloader commands ──────────────────────────────────────────
+        new SlashCommandBuilder()
+            .setName('tiktok')
+            .setDescription('Download TikTok video/photo')
+            .addStringOption(o => o.setName('url').setDescription('TikTok URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('instagram')
+            .setDescription('Download Instagram photo/video/reel')
+            .addStringOption(o => o.setName('url').setDescription('Instagram URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('facebook')
+            .setDescription('Download Facebook video')
+            .addStringOption(o => o.setName('url').setDescription('Facebook URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('twitter')
+            .setDescription('Download Twitter/X media')
+            .addStringOption(o => o.setName('url').setDescription('Twitter/X URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('youtube')
+            .setDescription('Download YouTube video or audio')
+            .addStringOption(o => o.setName('url').setDescription('YouTube URL').setRequired(true))
+            .addStringOption(o => o.setName('format').setDescription('Format: 360, 480, 720, 1080, mp3 (default: 720)').setRequired(false)),
+
+        new SlashCommandBuilder()
+            .setName('spotify')
+            .setDescription('Download Spotify track as MP3')
+            .addStringOption(o => o.setName('url').setDescription('Spotify track URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('threads')
+            .setDescription('Download Threads video')
+            .addStringOption(o => o.setName('url').setDescription('Threads URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('pinterest')
+            .setDescription('Download Pinterest video')
+            .addStringOption(o => o.setName('url').setDescription('Pinterest video URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('capcut')
+            .setDescription('Download CapCut template/video')
+            .addStringOption(o => o.setName('url').setDescription('CapCut URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('mediafire')
+            .setDescription('Download file from MediaFire')
+            .addStringOption(o => o.setName('url').setDescription('MediaFire URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('terabox')
+            .setDescription('Download file from Terabox')
+            .addStringOption(o => o.setName('url').setDescription('Terabox URL').setRequired(true)),
+
+        new SlashCommandBuilder()
+            .setName('soundcloud')
+            .setDescription('Download SoundCloud track')
+            .addStringOption(o => o.setName('url').setDescription('SoundCloud track URL').setRequired(true)),
+
+    ].map(cmd => cmd.toJSON());
+
     const rest = new REST({ version: '10' }).setToken(TOKEN);
     try {
         await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
@@ -658,9 +720,183 @@ client.once('ready', async () => {
     addLog('system', `Bot started as ${client.user.tag}`);
 });
 
-// TikTok Logic (Sama seperti kodemu sebelumnya)
+// ================= SLASH COMMAND HANDLER =================
+const QASIM_BASE = 'https://api.qasimdev.dpdns.org';
+
+/**
+ * Fetch a QasimDev downloader endpoint and return parsed JSON.
+ * Throws on HTTP error or missing API key.
+ */
+async function qasimDownload(endpoint, params = {}) {
+    if (!QASIMDEV_KEY) throw new Error('QASIMDEV_API_KEY is not set in .env');
+    const url = new URL(QASIM_BASE + endpoint);
+    url.searchParams.set('apiKey', QASIMDEV_KEY);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    const res = await fetch(url.toString());
+    const json = await res.json();
+    if (!res.ok || json.success === false) {
+        throw new Error(json.error || json.message || `HTTP ${res.status}`);
+    }
+    return json;
+}
+
+/**
+ * Build a Discord embed-style reply for a downloaded media item.
+ */
+function buildDownloadReply(platform, data) {
+    // Normalise the response into { title, thumb, downloads[] }
+    // Each platform returns slightly different shapes — we handle the common ones.
+    let title = data.title || data.name || data.filename || 'Media';
+    let thumb = data.thumbnail || data.cover || data.image || data.artwork || null;
+    let downloads = [];
+
+    // TikTok  (/api/tiktok/download)
+    if (data.video) downloads.push({ label: '🎬 Video (no watermark)', url: data.video });
+    if (data.videoWatermark) downloads.push({ label: '🎬 Video (watermark)', url: data.videoWatermark });
+    if (data.audio) downloads.push({ label: '🎵 Audio', url: data.audio });
+    if (Array.isArray(data.images)) data.images.forEach((img, i) => downloads.push({ label: `🖼️ Image ${i + 1}`, url: img }));
+
+    // Instagram / Facebook / Twitter / Threads / Pinterest / CapCut
+    if (Array.isArray(data.medias)) {
+        data.medias.forEach((m, i) => {
+            const label = m.quality ? `📥 ${m.quality}` : `📥 Link ${i + 1}`;
+            downloads.push({ label, url: m.url || m.link });
+        });
+    }
+    if (data.url && downloads.length === 0) downloads.push({ label: '📥 Download', url: data.url });
+    if (data.download_url) downloads.push({ label: '📥 Download', url: data.download_url });
+    if (data.downloadUrl) downloads.push({ label: '📥 Download', url: data.downloadUrl });
+    if (data.link) downloads.push({ label: '📥 Download', url: data.link });
+
+    // YouTube / generic
+    if (data.videoUrl) downloads.push({ label: '🎬 Video', url: data.videoUrl });
+    if (data.audioUrl) downloads.push({ label: '🎵 Audio', url: data.audioUrl });
+
+    // Spotify
+    if (data.download) downloads.push({ label: '🎵 MP3', url: data.download });
+
+    // MediaFire / Terabox / SoundCloud
+    if (data.directLink) downloads.push({ label: '📥 Direct Link', url: data.directLink });
+    if (data.downloadLink) downloads.push({ label: '📥 Download', url: data.downloadLink });
+
+    // Deduplicate
+    const seen = new Set();
+    downloads = downloads.filter(d => {
+        if (!d.url || seen.has(d.url)) return false;
+        seen.add(d.url);
+        return true;
+    });
+
+    if (downloads.length === 0) throw new Error('No downloadable links found in API response.');
+
+    const lines = downloads.map(d => `[${d.label}](${d.url})`).join('\n');
+    return {
+        embeds: [{
+            color: 0x5865F2,
+            title: `${platform} — ${title}`.slice(0, 256),
+            description: lines.slice(0, 4096),
+            thumbnail: thumb ? { url: thumb } : undefined,
+            footer: { text: 'Powered by QasimDev API • Nexus Panel' },
+        }]
+    };
+}
+
 client.on('interactionCreate', async interaction => {
-   // ... (Kode Tiktok DL milikmu biarkan persis sama seperti sebelumnya di sini) ...
+    if (!interaction.isChatInputCommand()) return;
+
+    const { commandName } = interaction;
+    const downloaderCommands = [
+        'tiktok','instagram','facebook','twitter','youtube',
+        'spotify','threads','pinterest','capcut','mediafire','terabox','soundcloud'
+    ];
+    if (!downloaderCommands.includes(commandName)) return;
+
+    await interaction.deferReply();
+
+    const url = interaction.options.getString('url');
+
+    try {
+        let data, platform;
+
+        switch (commandName) {
+            case 'tiktok':
+                platform = 'TikTok';
+                data = await qasimDownload('/api/tiktok/download', { url });
+                break;
+
+            case 'instagram':
+                platform = 'Instagram';
+                data = await qasimDownload('/api/instagram/download', { url });
+                break;
+
+            case 'facebook':
+                platform = 'Facebook';
+                data = await qasimDownload('/api/facebook/download', { url });
+                break;
+
+            case 'twitter':
+                platform = 'Twitter/X';
+                data = await qasimDownload('/api/twitter/download', { url });
+                break;
+
+            case 'youtube': {
+                platform = 'YouTube';
+                const fmt = interaction.options.getString('format') || '720';
+                data = await qasimDownload('/api/youtube/download', { url, format: fmt });
+                break;
+            }
+
+            case 'spotify':
+                platform = 'Spotify';
+                data = await qasimDownload('/api/spotify/download', { url });
+                break;
+
+            case 'threads':
+                platform = 'Threads';
+                data = await qasimDownload('/api/threads/download', { url });
+                break;
+
+            case 'pinterest':
+                platform = 'Pinterest';
+                data = await qasimDownload('/api/download/pinterest', { url });
+                break;
+
+            case 'capcut':
+                platform = 'CapCut';
+                data = await qasimDownload('/api/capcut/download', { url });
+                break;
+
+            case 'mediafire':
+                platform = 'MediaFire';
+                data = await qasimDownload('/api/mediafire/download', { url });
+                break;
+
+            case 'terabox':
+                platform = 'Terabox';
+                data = await qasimDownload('/api/terabox/download', { url });
+                break;
+
+            case 'soundcloud':
+                platform = 'SoundCloud';
+                data = await qasimDownload('/api/soundcloud/download', { url });
+                break;
+        }
+
+        const reply = buildDownloadReply(platform, data);
+        await interaction.editReply(reply);
+        addLog('message', `[/${commandName}] ${interaction.user.username} downloaded from ${url.slice(0, 60)}`);
+
+    } catch (err) {
+        console.error(`[/${commandName}] Error:`, err.message);
+        await interaction.editReply({
+            embeds: [{
+                color: 0xED4245,
+                title: '❌ Download Failed',
+                description: `\`${err.message}\``,
+                footer: { text: `Command: /${commandName}` }
+            }]
+        });
+    }
 });
 
 // ================= START BOT & SERVER =================
